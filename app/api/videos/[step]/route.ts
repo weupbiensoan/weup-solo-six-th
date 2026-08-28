@@ -1,5 +1,5 @@
 import { isAdminRequest } from "@/lib/admin-auth";
-import { deleteBlob, findBlob, writeBlobText } from "@/lib/blob-store";
+import { blobIsConfigured, deleteBlob, findBlob, readPrivateBlob, writeBlobText } from "@/lib/blob-store";
 
 function safeStep(value: string) { return /^[a-zA-Z0-9_-]+$/.test(value) ? value : null; }
 const DEFAULT_VIDEOS: Record<string, string> = {
@@ -70,9 +70,25 @@ export async function GET(request: Request, context: { params: Promise<{ step: s
   const defaultUrl = DEFAULT_VIDEOS[step] || null;
   const custom = defaultUrl ? null : await findBlob(`guide-videos/${step}`);
   if (new URL(request.url).searchParams.get("meta") === "1") {
-    return Response.json({ hasVideo: Boolean(custom || (!disabled && defaultUrl)), url: custom ? custom.url : disabled ? null : defaultUrl });
+    return Response.json({ hasVideo: Boolean(custom || (!disabled && defaultUrl)), url: custom ? `/api/videos/${encodeURIComponent(step)}` : disabled ? null : defaultUrl });
   }
-  if (custom) return Response.redirect(custom.url, 302);
+  if (custom) {
+    const range = request.headers.get("range");
+    const stored = await readPrivateBlob(`guide-videos/${step}`, range ? { Range: range } : undefined);
+    if (stored?.statusCode === 200) {
+      const headers = new Headers({
+        "Content-Type": stored.blob.contentType || "video/mp4",
+        "Cache-Control": "public, max-age=60",
+        "Accept-Ranges": stored.headers.get("accept-ranges") || "bytes",
+        ETag: stored.blob.etag,
+      });
+      const contentRange = stored.headers.get("content-range");
+      const contentLength = stored.headers.get("content-length");
+      if (contentRange) headers.set("Content-Range", contentRange);
+      if (contentLength) headers.set("Content-Length", contentLength);
+      return new Response(stored.stream, { status: contentRange ? 206 : 200, headers });
+    }
+  }
   if (disabled) return new Response("Chưa có video", { status: 404 });
   if (defaultUrl) return Response.redirect(new URL(defaultUrl, request.url), 302);
   return new Response("Chưa có video", { status: 404 });
@@ -98,10 +114,9 @@ export async function DELETE(request: Request, context: { params: Promise<{ step
   const step = safeStep(rawStep);
   if (!step) return Response.json({ error: "Bước không hợp lệ." }, { status: 400 });
   if (DEFAULT_VIDEOS[step]) return Response.json({ error: "Video của mô hình này đã được cố định theo nội dung chính thức." }, { status: 409 });
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (blobIsConfigured()) {
     await deleteBlob(`guide-videos/${step}`);
     await writeBlobText(`${DISABLED_PREFIX}/${step}`, "1");
   }
   return Response.json({ ok: true });
 }
-

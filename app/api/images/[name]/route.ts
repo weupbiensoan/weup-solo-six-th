@@ -1,5 +1,5 @@
 import { isAdminRequest } from "@/lib/admin-auth";
-import { findBlob } from "@/lib/blob-store";
+import { readPrivateBlob } from "@/lib/blob-store";
 import { put } from "@vercel/blob";
 
 const ASSET_ORIGIN = "https://thao-tac-mo-hinh-1.weupbiensoan.chatgpt.site";
@@ -12,21 +12,18 @@ export async function GET(request: Request, context: { params: Promise<{ name: s
   const { name: rawName } = await context.params;
   const name = safeName(rawName);
   if (!name) return new Response("Tên ảnh không hợp lệ", { status: 400 });
-  const blob = await findBlob(`guide-images/${name}`);
-  if (blob) {
-    try {
-      const stored = await fetch(blob.url, { cache: "no-store" });
-      const contentType = stored.headers.get("content-type") || "";
-      if (stored.ok && stored.body && contentType.startsWith("image/")) {
-        return new Response(stored.body, {
-          headers: {
-            "Content-Type": contentType,
-            "Cache-Control": "public, max-age=60",
-          },
-        });
-      }
-    } catch {
-      // Continue to the bundled image when a stale Blob URL cannot be read.
+  const stored = await readPrivateBlob(`guide-images/${name}`);
+  if (stored?.statusCode === 200) {
+    const contentType = stored.blob.contentType || "";
+    if (contentType.startsWith("image/")) {
+      return new Response(stored.stream, {
+        headers: {
+          "Content-Type": contentType,
+          "Content-Length": String(stored.blob.size),
+          "Cache-Control": "public, max-age=60",
+          ETag: stored.blob.etag,
+        },
+      });
     }
   }
   if (/^m[1-6]-/i.test(name)) {
@@ -45,7 +42,6 @@ export async function POST(request: Request, context: { params: Promise<{ name: 
   if (!(file instanceof File)) return Response.json({ error: "Bạn chưa chọn ảnh." }, { status: 400 });
   if (!file.type.startsWith("image/")) return Response.json({ error: "Tệp đã chọn không phải hình ảnh." }, { status: 400 });
   if (file.size > 4 * 1024 * 1024) return Response.json({ error: "Ảnh lớn hơn 4 MB cần tải trực tiếp bằng trình quản trị mới." }, { status: 400 });
-  await put(`guide-images/${name}`, file, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: file.type });
+  await put(`guide-images/${name}`, file, { access: "private", addRandomSuffix: false, allowOverwrite: true, contentType: file.type });
   return Response.json({ ok: true });
 }
-

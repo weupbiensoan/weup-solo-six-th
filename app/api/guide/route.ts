@@ -1,5 +1,5 @@
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readBlobText, writeBlobText } from "@/lib/blob-store";
+import { blobIsConfigured, readBlobText, writeBlobText } from "@/lib/blob-store";
 function guideKey(request: Request) {
   const requested = new URL(request.url).searchParams.get("model");
   const model = requested === "2" || requested === "3" || requested === "4" || requested === "5" || requested === "6" ? requested : "1";
@@ -33,8 +33,7 @@ export async function POST(request: Request) {
   if (!isAdminRequest(request)) return Response.json({ error: "Bạn không có quyền cập nhật hướng dẫn." }, { status: 403 });
   const body = await request.json().catch(()=>null) as { guide?: unknown } | null;
   if (!body || !validGuide(body.guide)) return Response.json({ error: "Dữ liệu hướng dẫn không hợp lệ." }, { status: 400 });
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: "Chưa kết nối Vercel Blob." }, { status: 503 });
+  if (!blobIsConfigured()) return Response.json({ error: "Chưa kết nối Vercel Blob." }, { status: 503 });
   await writeBlobText(guideKey(request), JSON.stringify(body.guide), "application/json; charset=utf-8");
   return Response.json({ ok: true });
 }
-
