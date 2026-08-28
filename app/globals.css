@@ -13,10 +13,9 @@
 .weup-logo{display:block;width:92px;height:44px;object-fit:contain}
 .portal-header nav{justify-content:flex-start;column-gap:34px;row-gap:8px}
 .portal-brand-title{padding:0;color:var(--ink);font-size:11px;font-weight:900;letter-spacing:.12em;white-space:nowrap}
-.model-tabs{position:absolute;left:52.5%;transform:translateX(-50%);width:min(680px,43vw);flex:none;justify-content:space-between;gap:12px;min-width:0}
+.model-tabs{position:static;left:auto;transform:none;width:auto;flex:1;justify-content:center;gap:clamp(4px,1vw,12px);min-width:0}
 .portal-header .model-tabs>button{padding:10px 15px}
 .portal-header .admin-badge{margin-left:auto}
 
 @media(max-width:1100px){.model-tabs{position:static;left:auto;transform:none;order:3;width:100%;flex:0 0 100%;justify-content:center;gap:clamp(14px,2vw,24px)}}
 @media(max-width:760px){.portal-header{padding:10px 18px 10px 24px}.logo-button{margin-bottom:9px}.weup-logo{width:82px;height:38px}.portal-header nav{column-gap:22px}.portal-brand-title{padding:0;font-size:10px}.model-tabs{flex:0 0 100%;justify-content:flex-start;gap:12px}.portal-header .model-tabs>button{padding:10px 13px}.model-subnav{top:150px}}
-
