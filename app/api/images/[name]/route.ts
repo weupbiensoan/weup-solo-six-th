@@ -27,7 +27,10 @@ export async function GET(request: Request, context: { params: Promise<{ name: s
     }
   }
   if (/^m[1-6]-/i.test(name)) {
-    return Response.redirect(new URL(`/steps/images/${name}`, request.url), 302);
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `/steps/images/${encodeURIComponent(name)}` },
+    });
   }
   return Response.redirect(`${ASSET_ORIGIN}/steps/images/${encodeURIComponent(name)}`, 302);
 }
