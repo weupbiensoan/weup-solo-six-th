@@ -14,8 +14,8 @@ const images = (...numbers: number[]) =>
   numbers.map((number) => `m2-ch4-${String(number).padStart(3, "0")}.png`);
 
 /**
- * Detailed implementation guide extracted from “chuong4_thai_localized_images.docx”.
- * The 55 localized screenshots remain in the same order as the source document.
+ * Detailed implementation guide extracted from “Mô hình 2 - chương 4.docx”.
+ * The 55 Vietnamese screenshots remain in the same order as the source document.
  */
 export const model2DetailedGuide: Model2DetailedGuideStep[] = [
   {
