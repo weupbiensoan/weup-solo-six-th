@@ -167,8 +167,8 @@ const defaultGuide2:GuideStep[]=steps2.map(step=>addDefaultPreparation({
   ...step,
   details:[...step.details],
   callout:step.callout?{...step.callout}:undefined,
-  detailImages:step.detailImages.map(group=>[...group]),
-  calloutImages:[...step.calloutImages],
+  detailImages:(step.detailImages??[]).map(group=>[...group]),
+  calloutImages:[...(step.calloutImages??[])],
   defaultVideo:undefined,
   showVideo:false,
 }));
