@@ -6,7 +6,10 @@ function guideKey(request: Request) {
   if (model === "1") return "guide-content/model-1-guide-v3.json";
   if (model === "2") return "guide-content/model-2-guide-v4.json";
   if (model === "3") return "guide-content/model-3-guide-v2.json";
-  return model === "5" ? "guide-content/model-5-guide-v2.json" : `guide-content/model-${model}-guide.json`;
+  if (model === "4") return "guide-content/model-4-guide-v2.json";
+  if (model === "5") return "guide-content/model-5-guide-v3.json";
+  if (model === "6") return "guide-content/model-6-guide-v2.json";
+  return `guide-content/model-${model}-guide.json`;
 }
 
 export type StoredGuideStep = {
