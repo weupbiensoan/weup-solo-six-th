@@ -4,12 +4,13 @@ import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, use
 import { usePathname, useRouter } from "next/navigation";
 import { upload as uploadToBlob } from "@vercel/blob/client";
 import { promptText } from "./knowledge";
-import { promptText2, steps2 } from "./knowledge2";
+import { promptText2 } from "./knowledge2";
 import { promptText3 } from "./knowledge3";
 import { promptText4 } from "./knowledge4";
 import { promptText5 } from "./knowledge5";
 import { promptText6 } from "./knowledge6";
 import { model1DetailedGuide } from "./model1-detailed-guide";
+import { model2DetailedGuide } from "./model2-detailed-guide";
 import { model3DetailedGuide } from "./model3-detailed-guide";
 import { model4DetailedGuide } from "./model4-detailed-guide";
 import { model5DetailedGuide } from "./model5-detailed-guide";
@@ -163,18 +164,19 @@ function upgradeGuide(saved:GuideStep[]){
   return saved.map((s,i)=>({...s,n:String(i+1).padStart(2,"0")}));
 }
 
-const defaultGuide2:GuideStep[]=steps2.map(step=>addDefaultPreparation({
+const defaultGuide2:GuideStep[]=model2DetailedGuide.map(step=>({
   ...step,
   details:[...step.details],
   callout:step.callout?{...step.callout}:undefined,
-  detailImages:(step.detailImages??[]).map(group=>[...group]),
-  calloutImages:[...(step.calloutImages??[])],
+  detailImages:step.detailImages.map(group=>[...group]),
+  calloutImages:[...step.calloutImages],
   defaultVideo:undefined,
   showVideo:false,
+  preparation:step.preparation?{manual:[...step.preparation.manual],automatic:[...step.preparation.automatic]}:undefined,
 }));
 function upgradeGuide2(saved:GuideStep[]){
-  const isSourceVersion=saved.length===12&&saved.some(s=>s.id==="m2-buoc-01")&&saved.some(s=>s.detailImages?.flat()?.includes("m2-41.jpg"));
-  if(!isSourceVersion)return defaultGuide2;
+  const isDetailedVersion=saved.length===18&&saved.some(s=>s.id==="m2-01-quy-trinh-trung-tam")&&saved.some(s=>s.detailImages?.flat()?.includes("m2-ch4-055.png"));
+  if(!isDetailedVersion)return defaultGuide2;
   return saved.map((s,i)=>({...s,n:String(i+1).padStart(2,"0")}));
 }
 
