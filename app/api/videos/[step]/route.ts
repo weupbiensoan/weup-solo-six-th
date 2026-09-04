@@ -65,7 +65,7 @@ const DISABLED_PREFIX = "guide-videos-disabled-v2";
 export async function GET(request: Request, context: { params: Promise<{ step: string }> }) {
   const { step: rawStep } = await context.params;
   const step = safeStep(rawStep);
-  if (!step) return new Response("Bước không hợp lệ", { status: 400 });
+  if (!step) return new Response("การกระทําที่ผิดกฎหมาย", { status: 400 });
   const disabled = await findBlob(`${DISABLED_PREFIX}/${step}`);
   const defaultUrl = DEFAULT_VIDEOS[step] || null;
   const custom = defaultUrl ? null : await findBlob(`guide-videos/${step}`);
@@ -89,31 +89,31 @@ export async function GET(request: Request, context: { params: Promise<{ step: s
       return new Response(stored.stream, { status: contentRange ? 206 : 200, headers });
     }
   }
-  if (disabled) return new Response("Chưa có video", { status: 404 });
+  if (disabled) return new Response("ไม่มีวีดีโอ", { status: 404 });
   if (defaultUrl) return Response.redirect(new URL(defaultUrl, request.url), 302);
-  return new Response("Chưa có video", { status: 404 });
+  return new Response("ไม่มีวีดีโอ", { status: 404 });
 }
 
 export async function POST(request: Request, context: { params: Promise<{ step: string }> }) {
-  if (!isAdminRequest(request)) return Response.json({ error: "Bạn không có quyền thay video." }, { status: 403 });
+  if (!isAdminRequest(request)) return Response.json({ error: "คุณไม่มีสิทธิ์เปลี่ยนวีดีโอ" }, { status: 403 });
   const { step: rawStep } = await context.params;
   const step = safeStep(rawStep);
-  if (!step) return Response.json({ error: "Bước không hợp lệ." }, { status: 400 });
-  if (DEFAULT_VIDEOS[step]) return Response.json({ error: "Video của mô hình này đã được cố định theo nội dung chính thức." }, { status: 409 });
+  if (!step) return Response.json({ error: "การเดินไม่ถูกต้อง" }, { status: 400 });
+  if (DEFAULT_VIDEOS[step]) return Response.json({ error: "วิดีโอของตัวอย่างนี้ถูกกําหนดตามความเป็นทางการ" }, { status: 409 });
   const form = await request.formData();
   const file = form.get("video");
-  if (!(file instanceof File)) return Response.json({ error: "Bạn chưa chọn video." }, { status: 400 });
-  if (!file.type.startsWith("video/")) return Response.json({ error: "Tệp đã chọn không phải video." }, { status: 400 });
-  if (file.size > 100 * 1024 * 1024) return Response.json({ error: "Video không được lớn hơn 100 MB. Video dài nên được cắt hoặc nén trước khi tải lên." }, { status: 400 });
-  return Response.json({ error: "Vui lòng tải video bằng trình tải trực tiếp Vercel Blob trên giao diện quản trị." }, { status: 413 });
+  if (!(file instanceof File)) return Response.json({ error: "คุณยังไม่ได้เลือกวีดีโอ" }, { status: 400 });
+  if (!file.type.startsWith("video/")) return Response.json({ error: "ไฟล์ที่เลือก ไม่ใช่วีดีโอ" }, { status: 400 });
+  if (file.size > 100 * 1024 * 1024) return Response.json({ error: "วิดีโอไม่ควรใหญ่กว่า 100 MB วิดีโอยาวควรตัดหรือสับก่อนการพิมพ์" }, { status: 400 });
+  return Response.json({ error: "โหลดวีดีโอด้วย Vercel Blob Live Downloader บนระบบบริหาร" }, { status: 413 });
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ step: string }> }) {
-  if (!isAdminRequest(request)) return Response.json({ error: "Bạn không có quyền xóa video." }, { status: 403 });
+  if (!isAdminRequest(request)) return Response.json({ error: "คุณไม่มีสิทธิ์ลบวีดีโอ" }, { status: 403 });
   const { step: rawStep } = await context.params;
   const step = safeStep(rawStep);
-  if (!step) return Response.json({ error: "Bước không hợp lệ." }, { status: 400 });
-  if (DEFAULT_VIDEOS[step]) return Response.json({ error: "Video của mô hình này đã được cố định theo nội dung chính thức." }, { status: 409 });
+  if (!step) return Response.json({ error: "การเดินไม่ถูกต้อง" }, { status: 400 });
+  if (DEFAULT_VIDEOS[step]) return Response.json({ error: "วิดีโอของตัวอย่างนี้ถูกกําหนดตามความเป็นทางการ" }, { status: 409 });
   if (blobIsConfigured()) {
     await deleteBlob(`guide-videos/${step}`);
     await writeBlobText(`${DISABLED_PREFIX}/${step}`, "1");

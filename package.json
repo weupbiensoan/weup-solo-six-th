@@ -1,5 +1,5 @@
 {
-  "name": "weup-solo-six",
+  "name": "weup-solo-six-th",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.19.0",
@@ -42,5 +42,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "displayName": "WEUP SoloSix"
+  "displayName": "WEUP SoloSix Thailand"
 }

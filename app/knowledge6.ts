@@ -1,159 +1,219 @@
 import type { GuideStep } from "./knowledge";
 
-export const promptText6 = `Tôi muốn xây dựng một hệ thống giới thiệu sản phẩm và nhận hoa hồng bằng AI cho mô hình kinh doanh một người. Hệ thống phải giúp tôi kiểm chứng dữ liệu sản phẩm, quản lý chương trình đối tác, thu nhu cầu khách hàng, phân loại mức xử lý, tạo thư nháp có kiểm duyệt, nhập báo cáo hoa hồng, đối soát tiền và cảnh báo rủi ro; AI chỉ hỗ trợ chuẩn hóa và phân loại, còn người kinh doanh giữ toàn bộ quyền duyệt và gửi.
-
-Bối cảnh cài đặt: tôi tạo một Google Sheets trống tên HE_THONG_GIOI_THIEU_AI, mở Apps Script từ chính bảng tính đó và dán mã vào. Hãy trả về đúng ba tệp đầy đủ trong một câu trả lời, mỗi tệp ở một khối mã riêng và ghi rõ tên:
-1. Ma.gs chứa cấu hình, onOpen, menu và toàn bộ nghiệp vụ.
-2. BangDieuKhien.gs chứa phần máy chủ của bảng điều khiển.
-3. BangDieuKhien.html chứa giao diện bảng điều khiển.
-
-Ràng buộc kiến trúc bắt buộc:
-- Chỉ Ma.gs được khai báo onOpen. Menu phải có tên “HỆ THỐNG GIỚI THIỆU” và gồm đúng các mục: 1. Khởi tạo hệ thống; 2. Nạp dữ liệu nghiên cứu (AI); 3. Tạo biểu mẫu nhu cầu; 4. Phân loại khách mới (AI); 5. Tạo thư nháp gửi khách; 6. Đánh dấu đã gửi (dòng đang chọn); 7. Nhập báo cáo hoa hồng; 8. Đối soát hoa hồng; 9. Kiểm tra rủi ro; 10. Đặt lịch tự động; Mở bảng điều khiển; Tạo cây thư mục Drive; Xem liên kết hệ thống; Kiểm tra kết nối API.
-- Dùng SpreadsheetApp.getActiveSpreadsheet() cho tệp trung tâm. Mã khởi tạo phải chạy lại an toàn, không xóa dữ liệu người dùng. Giữ nguyên thứ tự các cột theo các mảng tiêu đề đã khai báo; không xóa hoặc đổi vị trí cột sau khi hệ thống được tạo.
-- Khóa API đọc từ PropertiesService.getScriptProperties() với tên API_KEY, tuyệt đối không ghi khóa trong mã hoặc trang tính. Khóa bắt đầu bằng sk-ant thì gọi Anthropic; khóa khác thì gọi OpenAI. Cho phép thuộc tính MODEL tùy chọn; mặc định claude-sonnet-4-5 cho Anthropic và gpt-4o cho OpenAI.
-- Mọi UrlFetchApp.fetch phải đặt muteHttpExceptions: true. Khi API lỗi phải ném lỗi có mã HTTP và nguyên văn nội dung trả về. Phải xử lý an toàn khi AI trả JSON có hàng rào mã, thiếu trường hoặc không hợp lệ; lỗi của một tệp hoặc một khách không được làm dừng cả vòng lặp.
-- Tên hàm và biến viết tiếng Việt không dấu; chú thích, thông báo, thư và câu lệnh gửi AI viết tiếng Việt có dấu. Mọi hàm mà HTML gọi phải tồn tại thật trong hai tệp .gs; tên tệp HTML phải đúng BangDieuKhien để khớp createHtmlOutputFromFile('BangDieuKhien').
-
-Năm trang tính hệ thống và thứ tự cột:
-1. SAN_PHAM: MA_SP, TEN_SAN_PHAM, NHOM_VAN_DE, KHACH_PHU_HOP, KHACH_CHUA_PHU_HOP, MUC_GIA, TINH_NANG_CHINH, GIOI_HAN, NGUON_CHINH_THUC, NGAY_KIEM_TRA, TRANG_THAI_DU_LIEU, LINK_NOI_DUNG, LINK_HO_SO, GHI_CHU.
-2. DOI_TAC: MA_DT, TEN_CHUONG_TRINH, MA_SP_LIEN_QUAN, LINK_DANG_KY, LINK_GIOI_THIEU, CACH_GHI_NHAN, THOI_GIAN_GHI_NHAN, MUC_HOA_HONG, DIEU_KIEN_DAO, KY_THANH_TOAN, GIOI_HAN_QUANG_BA, NGUOI_LIEN_HE, NGUON_DIEU_KHOAN, NGAY_KIEM_TRA, TRANG_THAI_DUYET, LINK_HO_SO, GHI_CHU.
-3. KHACH_HANG: MA_KHACH, NGAY_NHAN, EMAIL, NGUON_KHACH, QUY_MO_NHAN_SU, SO_NGUOI_DUNG, VAN_DE_CAN_GIAI_QUYET, CONG_CU_HIEN_TAI, NGAN_SACH_THANG, TIEU_CHI_BAT_BUOC, THOI_GIAN_TRIEN_KHAI, KET_QUA_AI, DE_XUAT, THONG_TIN_CON_THIEU, MUC_XU_LY, TRANG_THAI_DUYET, NGAY_GUI, GHI_CHU.
-4. HOA_HONG: MA_KHACH, MA_DOI_TAC, MA_GIAO_DICH, NGAY_GHI_NHAN, TRANG_THAI, HOA_HONG_DU_KIEN, HOA_HONG_DA_DUYET, TIEN_DA_NHAN, NGAY_DU_KIEN_NHAN, CHENH_LECH_DOI_SOAT, TIEN_CON_PHAI_THU, NGUON_BAO_CAO, GHI_CHU.
-5. NHAT_KY_HE_THONG: THOI_GIAN, HANH_DONG, CHI_TIET, KET_QUA.
-
-Danh sách trạng thái phải tạo bằng danh sách xổ và có màu cảnh báo:
-- Sản phẩm: CHO_DUYET, DA_KIEM_TRA, CAN_CAP_NHAT.
-- Đối tác: CHO_DUYET, DA_DUYET, CAN_XAC_NHAN, KHONG_THAM_GIA.
-- Khách hàng: MOI, CHO_DUYET, CAN_HOI_THEM, CHUYEN_NGUOI, DA_DUYET, DA_GUI; mức xử lý gồm MUC_1, MUC_2, MUC_3.
-- Hoa hồng: DA_GHI_NHAN, DU_DIEU_KIEN, DA_DUYET, DA_NHAN_TIEN, BI_HUY_DAO.
-
-Các chức năng phải hoạt động đầy đủ như sau:
-1. Khởi tạo năm trang tính, tiêu đề tiếng Việt, bộ lọc, cố định hàng đầu, danh sách xổ, định dạng cảnh báo và nhật ký. Tạo thư mục gốc HE_THONG_GIOI_THIEU_AI cùng NAP_DU_LIEU và NAP_HOA_HONG; tạo MAU_HOA_HONG.csv và bảng mẫu MAU_TONG_HOP_NGHIEN_CUU; lưu các ID vào Script Properties.
-2. Nạp hồ sơ nghiên cứu từ NAP_DU_LIEU. Tệp tên SP_<MÃ>_<Tên> được AI chuẩn hóa vào SAN_PHAM; tệp DT_<MÃ>_<Tên> được trích điều khoản vào DOI_TAC. Hỗ trợ Google Docs, TXT, PDF, ảnh và bảng tính. Mỗi tệp tạo hoặc cập nhật đúng mã, lưu link hồ sơ, ở trạng thái CHO_DUYET và được đổi tên sau khi nạp để chống trùng. Dữ liệu thiếu phải ghi rõ phần cần kiểm tra; không bịa giá, tính năng, giới hạn hoặc điều khoản.
-3. Tạo Google Form thu email người trả lời và đúng bảy câu hỏi: quy mô nhân sự; số người trực tiếp dùng phần mềm; vấn đề cần giải quyết; công cụ hiện tại; ngân sách tối đa mỗi tháng; tính năng bắt buộc; thời gian muốn triển khai. Nguồn khách được mã tự ghi là “Biểu mẫu nhu cầu”. Nối phản hồi về bảng tính đang mở, tạo mã khách duy nhất, ghi trạng thái MOI và tự cài trình kích hoạt gửi biểu mẫu mà không tạo trùng.
-4. Phân loại khách MOI chỉ bằng dữ liệu SAN_PHAM đã DA_KIEM_TRA và còn trong hạn 90 ngày. Prompt tuyệt đối không được nhận mức hoa hồng hoặc dữ liệu DOI_TAC. AI trả về JSON gồm mức xử lý, lý do, đề xuất tối đa ba sản phẩm và thông tin còn thiếu. MUC_1 chuyển CHO_DUYET; MUC_2 chuyển CAN_HOI_THEM; MUC_3 chuyển CHUYEN_NGUOI. Nếu mã sản phẩm không tồn tại, giữ khách ở MOI và ghi lỗi để người dùng kiểm tra.
-5. Chỉ tạo Gmail Draft, không tự gửi. Khách DA_DUYET nhận thư tư vấn gồm lựa chọn, lý do, điểm cần cân nhắc và liên kết giới thiệu của đối tác DA_DUYET; khách CAN_HOI_THEM nhận thư hỏi đúng thông tin còn thiếu; khách CHUYEN_NGUOI không có thư tư vấn tự động. Sau khi người dùng tự kiểm tra và gửi, mục 6 chỉ đánh dấu dòng đang chọn thành DA_GUI và ghi ngày gửi.
-6. Nhập CSV từ NAP_HOA_HONG theo cặp khóa MA_DOI_TAC + MA_GIAO_DICH; thêm mới hoặc cập nhật đúng giao dịch, đổi tên tệp với tiền tố DA_NHAP_ để chống nhập lại. Đối soát phải tính CHENH_LECH_DOI_SOAT = HOA_HONG_DU_KIEN - HOA_HONG_DA_DUYET và TIEN_CON_PHAI_THU = HOA_HONG_DA_DUYET - TIEN_DA_NHAN, tô cảnh báo nhưng không tự xóa chênh lệch.
-7. Kiểm tra rủi ro gồm: sản phẩm thiếu ngày kiểm tra hoặc quá 90 ngày; tỷ trọng hoa hồng đã duyệt theo đối tác trong 90 ngày và cảnh báo khi một đối tác chiếm từ 70%; khách DA_GUI chưa có giao dịch hoa hồng; khoản đã duyệt nhưng quá ngày dự kiến nhận. Báo cáo hiển thị trên màn hình, gửi bản sao vào email của tài khoản chạy mã và ghi nhật ký.
-8. Đặt lịch tự động sau khi xóa trigger lịch cũ để tránh trùng: kiểm tra rủi ro lúc 8 giờ thứ Hai và đối soát hoa hồng lúc 16 giờ thứ Sáu. Bảng điều khiển không cần trigger; mỗi lần mở tự đọc số liệu mới nhất.
-9. Bảng điều khiển mở bằng hộp thoại lớn, chỉ đọc dữ liệu trang tính để hiển thị khách theo trạng thái, ba mức tiền, cảnh báo, danh sách việc cần làm, tỷ trọng đối tác và sản phẩm quá hạn. Hàm lấy dữ liệu không gọi Drive và không gọi AI để mở nhanh.
-10. Kiểm tra kết nối API bằng một yêu cầu ngắn, báo rõ model đang dùng và thông báo hữu ích khi sai khóa, sai model hoặc hết hạn mức.
-
-Ba ranh giới an toàn bắt buộc phải được viết cứng trong mã và prompt:
-- AI không được ưu tiên sản phẩm vì hoa hồng; dữ liệu phân loại khách không bao giờ chứa mức hoa hồng hoặc bảng DOI_TAC.
-- Hệ thống chỉ tạo thư nháp, không thay người kinh doanh gửi thư hoặc cam kết với khách.
-- MUC_3 gồm chuyển dữ liệu cũ, tích hợp phức tạp, dữ liệu nhạy cảm hoặc hợp đồng lớn; bắt buộc CHUYEN_NGUOI và không tạo thư tư vấn tự động.
-- Không bịa sản phẩm, giá, tính năng, giới hạn, điều khoản, tỷ lệ hoa hồng, bằng chứng hoặc kết quả. Thiếu dữ liệu phải ghi rõ là thiếu và chờ người dùng xác nhận.
-- Chỉ TIEN_DA_NHAN được coi là tiền thực thu; không dùng HOA_HONG_DU_KIEN làm doanh thu.
-
-Cuối câu trả lời, hãy hướng dẫn chính xác: dán từng tệp ở đâu; tạo API_KEY thế nào; chạy hàm nào để cấp quyền; chạy menu nào trước; cách tạo và nạp hồ sơ SP_/DT_; cách duyệt dữ liệu; cách thử biểu mẫu, phân loại, thư nháp, báo cáo hoa hồng, đối soát, rủi ro, lịch tự động và bảng điều khiển. Đồng thời liệt kê bảng đối chiếu mọi hàm HTML gọi với tên tệp .gs nơi hàm đó được khai báo.`;
+export const promptText6 = `ฉันอยากสร้างระบบแนะนําสินค้า และได้รับเงินสําหรับ AI
+ระบบนี้ต้องช่วยฉันตรวจสอบข้อมูลการออก
+การประเมินผลการดําเนินการในสภาพแวดล้อม
+สติปัญญา การสร้างหนังสือพิมพ์ที่ถูกเซ็นเซอร์ การจัดรายงานคณะกรรมการ การต่อรองเงินและภาพทัศน์
+การรายงานความเสี่ยง AI เพียงสนับสนุนการมาตรฐานและการจัดอันดับ และผู้ประกอบการยังคง
+การตั้งค่า: ผมสร้าง Google Sheets เปล
+ชื่อคือ HE_THONG_GIOI_THIEU_AI เปิด Apps Script จากกระดาษหลักนั้นเอง แล้วติดตั้งรหัส
+ให้ฉัน 3 รายการเต็มในคําตอบเดียว ทุกรายการในบล็อก
+โค๊ดส่วนตัวและชื่อ: 1. Ma.gs มีการตั้งค่า, onOpen, เมนูและการ์มทั้งสิ้น
+BangDieuKeen.gs มีส่วนเซอร์เวอร์ของดัชบอร์ด
+BangDieuKeen.html มีอินเตอร์เฟอชบอร์ดดชันบอร์ด
+- แค่แม่จีสเท่านั้นที่ประกาศเปิด เมนูต้องมีชื่อว่า "MORE FUN"
+และรวมถึงข้อความต่อไปนี้: 1. เปิดระบบ 2. โหลดข้อมูลวิจัย (AI) 3.
+สร้างแบบฟอร์มการขอ 4. สร้างประเภทผู้เข้าพักใหม่ (AI) 5. สร้างความคิดเห็นของผู้เข้าพัก
+6. สัญญาณส่ง (การตั้งเส้น); 7. ใส่รายงานของกุหลาบ; 8.
+อันดับแรกคือ "Rose" อันดับที่ 9 คือ "ตรวจสอบความเสี่ยง" อันดับที่ 10 คือ "การกําหนดการอัตโนมัติ" อันดับที่ 2 คือ "การเปิดแผ่นควบคุม" อันดับที่ 3 คือ "สร้างต้นไม้"
+แฟลเดอร์ไดรฟ์; ดูลิ้งระบบ; ยืนยันการเชื่อมต่อ API
+แผนกระดาษApp.getActiveSpreadsheet() สําหรับไฟล์กลาง
+จัดสตูดในลําดับเดียวกันกับข้อมูลผู้ใช้
+แอรยหัวข้อที่ประกาศ; ไม่ลบหรือเปลี่ยนสถานที่คอลัมน์หลังจากระบบ
+- API คีย์อ่านจาก PropertiesService.getScriptProperties() กับชื่อ
+API_KEY, ไม่มีหลักสูตรหรือแท็บ
+แสคอนทชื่อแอนทรอปิก แสคอนทอีกตัวชื่อ OpenAI
+เป็นทางเลือก; คลาวด์-โซเนต-4-5 โดยปกติสําหรับ Anthropic และ gpt-4o สําหรับ OpenAI
+UrlFetchApp.fetch ต้องตั้ง muteHttp ยกเว้น: true เมื่อ API จะโยนปลอม
+มันมีรหัส HTTP และข้อความสํารอง
+มีข้อขัดขวางรหัส, ไม่มีสนามหรือไม่ถูกต้อง; ไฟล์หรือข้อผิดพลาดผู้เข้า
+- ชื่อฟังก์ชันและตัวแปรไม่ได้มีเครื่องหมาย
+เบอร์, ประกาศ, คําอธิบายและคําสั่งที่ส่งโดย AI มีเครื่องหมายในภาษาเวียดนาม
+HTML ที่เรียกต้องมีอยู่ในไฟล์ .gs สองไฟล์; ชื่อไฟล์ HTML ต้องถูกต้อง
+BangDieu เป็นลิงค์เพื่อสร้างHtmlOutputFromFile
+ระบบและลําดับคอลัมน์: 1. SAN_PHAM: MA_SP, TEN_SAN_PHAM, NHOM_VAN_DE,
+และพระราชาของเผ่า
+อันแรกคืออันแรก อันที่สอง อันที่สอง อันที่สาม อันที่สาม อันที่สาม อันที่สาม อันที่สาม อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่ อันที่สี่
+MA_DT, TEN_CHUONG_TRINH, MA_SP_LIEN_QUAN, และสองคนที่เหลืออยู่ในห้องเดียวกัน
+ฉันต้องไปโรงพยาบาล
+และพระเจ้าอยู่กับข้า ข้าจะให้ความสงบแก่พวกเจ้า
+ฉันจะไม่สามารถทําแบบนี้ได้
+ฉันไม่บอกคุณว่าผมทําอะไร
+แล้วนายเป็นอะไร
+และพระราชาชนชนเผ่าและพระราชาชนเผ่า
+ฉันไม่สามารถที่จะได้รับหนึ่งที่ดี
+ฉันช่วยอะไรได้
+พระเจ้าตรัสกับเขาว่า "ข้าจะไม่ลงไปทะเลหรือทะเล"
+ฉันจะไม่สามารถหางานได้
+รายการของรัฐในประเทศนี้คือ
+สีเตือนนี้ต้องมาจากรายการของสินค้า และมีสีเตือนต่อไปนี้: - สินค้า: CHO_DUYET
+สองคนถูกฆ่าในเหตุการณ์
+- ลูกค้าคือ: MOI, CHO_DUYET, CAN_HOI_THEM, CHUYEN_NGUOI,
+DA_DUYET, DA_GUI; ระดับการแปรรูปประกอบด้วย MUC_1, MUC_2, MUC_3. - Rose: DA_GHI_NHAN,
+ฟังก์ชันต้องเปิด
+ดินามิกทั้งหมดคือ 1. เริ่ม 5 แบ๊ก, ชื่อภาษาเวียดนาม, filter,
+อันแรกคือรายการของด้านบน รายการของด้านบน รูปแบบของเตือนและบันทึก
+He_THONG_GIOI_THIEU_AI กับ NAP_DU_LIEU และ NAP_HOA_HONG; สร้าง MAU_HOA_HONG.csv
+และแบบลอก MAU_TONG_HOP_NGHIEN_CUU; เก็บ ID ไปยัง Properties Script
+ไฟล์ SP_<MAM>_<NAME> เป็น AI มาตรฐาน
+SAN_PHAM; ไฟล์ DT_<MÃ>_<NAME> ถูกขุดออกจาก DOI_TAC. Google รองรับ
+เอกสาร, TXT, PDF, รูปภาพและกระดาษตาราง. ทุกไฟล์สร้างหรืออัพเดทโค้ดที่ถูกต้อง, ถอดเชื่อม
+ไฟล์อยู่ในสภาพ CHO_DUYET และเปลี่ยนชื่อหลังจากที่อัพโหลดไปยังยาป้องกันการอักเสบ
+ไม่ว่าชิ้นส่วนที่ต้องทดสอบหายไปหรือไม่ ไม่มีราคา, คุณสมบัติ, ขั้นต่ํา
+สร้างฟอร์ม Google ที่บันทึกอีเมลของผู้คน และ 7 ประโยคที่ถูกต้อง
+คําถาม: ขนาดของบุคลากร จํานวนคนใช้โปรแกรมโดยตรง ปัญหาที่ต้องแก้ไข
+เครื่องมือปัจจุบัน งบประมาณรายเดือนสูงสุด หน้าที่บังคับใช้ เวลา
+คódแหล่งถูกเขียนเป็นตัวตนเองเป็นแบบการต้องการ
+คุณจะเปิดตารางสื่อ สร้างรหัสลูกค้าที่แตกต่างกัน บันทึกสถานการณ์ MOI และติดตั้งมันโดยอัตโนมัติ
+Activator ส่งฟอร์มโดยไม่สร้างเอกสาร
+ฉันจะเอาข้อมูลจาก SAN_PHAM แล้วฉันจะเอามันคืนใน 90 วัน
+AI ย้อน JSON ซึ่งรวมถึง
+การทําการ, เหตุผล, การแนะนําของไม่เกิน 3 รายการและข้อมูลที่ขาด
+CHO_DUYET; MUC_2 เปลี่ยน CAN_HOI_THEM; MUC_3 เปลี่ยน CHUYEN_NGUOI. ถ้ารหัสถูกสร้าง
+สินค้าไม่มีอยู่ ทําให้ผู้เข้าชมอยู่ใน MOI และบันทึกความผิดพลาดให้ผู้ใช้ตรวจสอบ
+ลูกค้า DA_DUYET ได้รับจดหมายคําปรึกษา พร้อมกับตัวเลือก, เหตุผล
+จากจุดคิดเห็นและเชื่อมโยงที่เกี่ยวข้องของคู่หู DA_DUYET
+CAN_HOI_THEM ได้รับคําขอที่ถูกต้องสําหรับข้อมูลที่ขาดหาย
+หลังจากผู้ใช้ตรวจสอบและส่งมัน, ภาค 6 เพียงคลิก
+มาร์คเกอร์เส้นทางเลือก DA_GUI และใส่วันส่ง 6. กรอก CSV จาก NAP_HOA_HONG
+ตามคู่ปุ่ม MA_DOI_TAC + MA_GIAO_DICH; เป็นใหม่หรือปรับปรุงตามที่ได้รับมอบหมาย
+เพื่อแปลง, เปลี่ยนชื่อไฟล์ที่มีตัวอักษร DA_NHAP_ เป็นการใส่กลับ
+อันดับแรกคือฮ่องกง และอันดับสองคือฮ่องกง
+TIEN_CON_PHAI_THU = HOA_HONG_DA_DUYET - TIEN_DA_NHAN เสียงเตือน แต่ไม่
+7. การตรวจสอบความเสี่ยง ได้แก่: สินค้าที่ขาดวันตรวจสอบ หรือ
+กว่า 90 วัน; อัตราดอกเบี้ยได้รับการอนุมัติโดยผู้ร่วมงานภายใน 90 วันและเตือน
+เมื่อผู้ร่วมมือเป็น 70% ลูกค้า DA_GUI ยังไม่ได้ทําธุรกิจค่าใช้จ่าย
+รายงานแสดงบนจอแล้วส่งคอมพิวเตอร์
+กรอกอีเมลของบัญชีที่ใช้โค้ดและเก็บบันทึก
+เมื่อคุณเอาเครื่องกระตุ้นปฏิทินเก่าไป เพื่อป้องกันการติดเชื้อ: ตรวจสอบความเสี่ยงตอน 8 โมงเช้าวันจันทร์ และ
+การควบคุมไม่จําเป็นต้องมีเครื่องกระตุ้น แต่ละเครื่องใช้งานนั้นง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ ง่ายๆ
+แผ่นควบคุมเปิดด้วยกล่องการโต้ตอบใหญ่
+อ่านข้อมูลหน้า เพื่อแสดงสถานะของแขก 3 ระดับเงิน
+หนังสือพิมพ์ รายการงาน การร่วมมือ และสินค้าหมดอายุ
+10. ทดสอบการเชื่อมต่อ API
+ด้วยคําขอที่สั้น แสดงให้เห็นได้ชัดว่าตัวอย่างที่ใช้ และแสดงให้เห็นได้ชัดว่าตัวอย่างนั้นผิดเมื่อไหร่
+จําเป็นต้องมีขั้นต่ําความปลอดภัย 3 อย่าง
+เขียนร่อง
+การจัดอันดับผู้เข้าพักไม่เคยมีค่าธรรมเนียม DOI_TAC หรือตาราง
+ระบบนี้สร้างอีเมลเท่านั้น ไม่ใช่แทนที่นักธุรกิจที่ส่งอีเมล หรือรับผิดชอบ
+- MUC_3 ประกอบด้วยการโอนข้อมูลเก่า, การรวมข้อมูลที่ซับซ้อน, ข้อมูลที่มีความรู้สึก หรือ
+การสรรหาสัญญานั้นใหญ่มากครับ CHUYEN_NGUOI เป็นการบังคับใช้ และไม่มีหนังสือสอบถามอัตโนมัติ
+สถานุสินค้า ราคา ราคา ลักษณะ ขีดจํากัด เงื่อนไข ราคาดอกเบี้ย หลักฐาน
+ขาดข้อมูลที่ต้องบันทึกอย่างชัดเจน และรอการยืนยันของผู้ใช้
+รายได้จริงถือว่า TIEN_DA_NHAN เท่านั้น ไม่มี HOA_HONG_DU_KIEN ใช้ในการทําเช่นนั้น
+ณ จบคําตอบ, ให้คําแนะนําแม่นยํา: ที่ต้องเพาะไฟล์แต่ละไฟล์; สร้าง
+วิธีการทํางาน API_KEY การทํางานที่ให้อนุญาตในการทํางาน
+การอัพหลอดไฟล์ SP_/DT_ วิธีการใช้บริการข้อมูล วิธีการทดสอบแบบฟอร์ม การจัดลําดับ อีเมล์
+การรายงานอัตราดอกเบี้ย, ลูกค้าตรงกัน, ความเสี่ยง, ตารางเวลาอัตโนมัติและตารางดัชบอร์ด
+รายชื่อตารางของฟังก์ชัน HTML ทั้งหมดที่เรียกโดยชื่อไฟล์ .gs ที่ฟังก์ชันนั้นถูกประกาศ
+หนังสือพิมพ์`;
 
 export const steps6: GuideStep[] = [
   {
-    id:"m6-buoc-01", n:"01", title:"Dựng tệp trung tâm, dán ba tệp mã và khởi tạo hệ thống",
+    id:"m6-buoc-01", n:"01", title:"สร้างไฟล์กลาง, ใส่ไฟล์สามรหัส และเริ่มต้นระบบ",
     details:[
-      "Tạo một Google Sheets mới và đặt tên HE_THONG_GIOI_THIEU_AI. Đây là tệp trung tâm của toàn bộ hệ thống. Không cần tự tạo các trang tính hoặc gõ tên cột; khi chạy khởi tạo, mã sẽ tự sinh SAN_PHAM, DOI_TAC, KHACH_HANG, HOA_HONG và NHAT_KY_HE_THONG.",
-      "Trong bảng tính, vào Tiện ích mở rộng → Apps Script. Ở tệp Code.gs hoặc Mã.gs có sẵn, xóa mã mẫu rồi dán toàn bộ tệp Ma.gs. Bên trái, cạnh mục Tệp, bấm dấu + → Tập lệnh, đặt tên BangDieuKhien và dán tệp BangDieuKhien.gs. Bấm dấu + lần nữa → HTML, đặt tên đúng BangDieuKhien, không gõ đuôi .html, rồi dán BangDieuKhien.html. Tên HTML phải khớp từng chữ với createHtmlOutputFromFile('BangDieuKhien').",
-      "Bấm Lưu hoặc Ctrl+S. Chỉ Ma.gs được có hàm onOpen; không thêm onOpen vào BangDieuKhien.gs vì hai hàm trùng tên sẽ ghi đè nhau và menu có thể biến mất.",
-      "Tạo khóa API tại trang quản trị OpenAI hoặc Anthropic. Khóa chỉ hiện đầy đủ một lần nên sao chép ngay và không gửi cho người khác. Quay lại Apps Script → Cài đặt dự án → Thuộc tính của tập lệnh → Thêm thuộc tính; nhập tên API_KEY và dán khóa vào ô giá trị. Nếu cần đổi mô hình, thêm thuộc tính MODEL; không bắt buộc nếu dùng model mặc định trong mã.",
-      "Ở hộp chọn hàm trên thanh công cụ Apps Script, chọn onOpen rồi bấm Chạy để cấp quyền. Khi Google hiện cảnh báo ứng dụng chưa được xác minh, chọn đúng tài khoản → Nâng cao → Đi tới dự án → Cho phép. Đây là bước bắt buộc một lần cho tài khoản; chưa cấp đủ quyền thì Drive, Gmail, Form và các lịch tự động đều không chạy.",
-      "Quay lại bảng tính và nhấn F5. Khi menu HỆ THỐNG GIỚI THIỆU xuất hiện, chọn 1. Khởi tạo hệ thống. Chờ thông báo Khởi tạo xong, kiểm tra đủ năm trang dữ liệu và các thư mục hệ thống đã được tạo.",
-      "Chọn HỆ THỐNG GIỚI THIỆU → Kiểm tra kết nối API. Kết quả đúng phải báo Kết nối thành công và cho biết model đang dùng. Nếu lỗi 401, kiểm tra lại API_KEY; nếu sai model hoặc hết hạn mức, sửa thuộc tính MODEL hoặc tài khoản API rồi chạy lại trước khi nạp dữ liệu."
+      "สร้าง Google Sheets ใหม่ และตั้งชื่อ HE_THONG_GIOI_THIEU_AI เป็นไฟล์กลางของระบบทั้งหมด ไม่จําเป็นต้องสร้างหน้าประเภทเอง หรือเขียนชื่อคอลัมน์เองเกิด SAN_PHAM, DOI_TAC, KHACH_HANG, HOA_HONG และ NHAT_KY_HE_THONG",
+      "ในตารางการคิดเลข ใส่ Extended Utility → Apps Script. ในไฟล์ Code.gs หรือ Ma.gs ที่มี ลบรหัสตัวอย่าง แล้วเลื่อนไฟล์ Ma.gs ทั้งหมดไปข้างซ้ายข้าง File กลาก + → กรณีแบ็กดีโอคิเน่ และติดฟิล์ BangDieuKhien.gs ครับ หมอก + อีกครั้ง → HTML, ชื่อจริงของ แบ็กดีโอคิเน่, ไม่ติดท้าย .html, แล้วติดฟิล์ BangDieuKhien.htmlคู่มือขั้นตอน",
+      "คลิก Save หรือ Ctrl+S. เพียง Ma.gs ที่มีฟังก์ชัน onOpen; ไม่เพิ่ม onOpen เข้าสู่ BangDieuKhien.gs เพราะฟังก์ชันที่เหมือนกันชื่อจะถูกเขียนไปอีก และเมนูอาจหายไป",
+      "สร้าง API ในหน้าบริหาร OpenAI หรือ Anthropic. คลีย์ที่ปรากฏเพียงครั้งเดียวเท่านั้น ควรเลียนทันที และไม่ส่งไปยังคนอื่น. ย้อนกลับไป Apps Script → การตั้งโครงการ → เจ้าของคุณสมบัติของสกรท → เพิ่มคุณสมบัติ; ใส่ชื่อ API_KEY และติดล็อกในเซลล์ค่า. หากต้องการเปลี่ยนรูปแบบ, เพิ่มคุณสมบัติ MODEL; ไม่จําเป็นถ้าใช้แบบเดิมในรหัส",
+      "ในกรอบเลือกฟังก์ชันบนตารางเครื่องมือ Apps Script เลือก onOpen แล้วคลิ๊ก Run เพื่ออนุญาต เมื่อ Google ติดเตือนการใช้งานที่ยังไม่ถูกตรวจสอบ เลือกบัญชีที่ถูกต้อง → อัพเกรด → ไปยังโครงการ →ขออนุญาต. นี่เป็นการใช้งานครั้งเดียวที่ต้องใช้สําหรับบัญชี; ถ้ายังไม่ได้อนุญาตให้หมด Drive, Gmail, Form และปฏิทินอัตโนมัติจะไม่ทํางาน",
+      "กลับไปที่ตารางการทําการและกด F5 เมื่อเมนู รายการ \"MORE\" ออกมาเลือก 1 การเปิดระบบ รอการเปิดให้จบ ตรวจสอบทั้งหมด 5 หน้าข้อมูลและตารางระบบมันถูกสร้างขึ้น",
+      "เลือกตรวจสอบการเชื่อมต่อ API ผลที่ถูกต้องคือการรายงานความสําเร็จของการเชื่อมต่อและแสดงรูปแบบที่ใช้ หากมีความผิดพลาด 401 ตรวจสอบอีกครั้ง API_KEY หากมีความผิดพลาดรูปแบบหรือไม่มี\nปรับระดับ, ปรับ MODEL หรือ API บัญชีและเปิดมันอีกครั้งก่อนที่การพกพิมพ์ข้อมูล"
     ],
-    callout:{title:"Kết quả của bước",text:"Bảng tính trung tâm đã có đủ năm trang, menu HỆ THỐNG GIỚI THIỆU hoạt động, cây thư mục Drive đã được lưu bằng ID và API trả về thông báo kết nối thành công."},
+    callout:{title:"ผลการเดิน",text:"แผนกลางมีทั้งหมด 5 หน้า, เมนู HOME หมวดหมู่ทํางาน, ตู้ Drive ได้ถูกบันทึกด้วย ID และ API ย้อนกลับข้อความเชื่อมต่อสําเร็จ."},
     detailImages:[["m6-01.jpg"],["m6-02.jpg"],[],["m6-03.jpg"],[],["m6-04.jpg","m6-05.jpg"],["m6-06.jpg"]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-00.mp4"
   },
   {
-    id:"m6-buoc-02", n:"02", title:"Gom hồ sơ, nạp dữ liệu và duyệt từng sản phẩm",
+    id:"m6-buoc-02", n:"02", title:"รวมรายการ, เติมข้อมูล และตรวจสอบสินค้า",
     details:[
-      "Gom tài liệu thật của từng sản phẩm: báo giá Word/PDF do nhân viên bán hàng gửi, nội dung dán từ trang bảng giá chính thức, tệp tài liệu tính năng hoặc ảnh chụp màn hình. Mỗi sản phẩm để trong một tệp riêng để AI không trộn dữ liệu giữa nhiều sản phẩm.",
-      "Đổi tên theo mẫu SP_<MÃ>_<Tên>, ví dụ SP_CRM01_TenPhanMem. Mã do bạn tự đặt nhưng phải duy nhất, không trùng và không có khoảng trắng. Trong nội dung tệp cần giữ link nguồn chính thức, ngày kiểm tra và phần giới hạn, không chỉ giữ câu quảng cáo.",
-      "Trong Google Sheets, chọn HỆ THỐNG GIỚI THIỆU → Tạo cây thư mục Drive. Sau đó chọn Xem liên kết hệ thống, mở thư mục NAP_DU_LIEU và kéo thả các tệp SP_ vào. Có thể dùng tệp mẫu MAU_TONG_HOP_NGHIEN_CUU nếu muốn nhập nhiều dòng có cấu trúc, nhưng phải xóa dòng minh họa trước khi dùng dữ liệu thật.",
-      "Quay lại bảng tính → HỆ THỐNG GIỚI THIỆU → 2. Nạp dữ liệu nghiên cứu (AI). Chờ đến khi hộp thoại báo số tệp sản phẩm đã nạp. Hệ thống đọc từng tệp, chuẩn hóa dữ liệu và lưu link hồ sơ; tệp đã xử lý được đánh dấu để lần sau không nạp trùng.",
-      "Mở trang SAN_PHAM. Mỗi tệp phải trở thành đúng một dòng có mã tương ứng và TRẠNG THÁI DỮ LIỆU = CHO_DUYET, nền vàng. Kiểm tra tên sản phẩm, nhóm vấn đề, khách phù hợp, khách chưa phù hợp, mức giá, tính năng, giới hạn, nguồn chính thức và ngày kiểm tra.",
-      "Rà từng chỗ AI ghi CẦN KIỂM TRA hoặc nội dung chưa rõ: mở lại nguồn chính thức và điền tay. Xóa câu quảng cáo nếu lọt vào ô dữ liệu. Nếu nguồn là ảnh hoặc PDF, đối chiếu lại từng con số, đơn vị tiền và điều kiện áp dụng với bản gốc.",
-      "Chỉ khi toàn bộ dữ liệu đã được đối chiếu, đổi TRẠNG THÁI DỮ LIỆU sang DA_KIEM_TRA, nền xanh. Không chỉ thay trạng thái để đi tiếp; chỉ dòng DA_KIEM_TRA còn trong hạn 90 ngày mới được đưa vào bước phân loại khách."
+      "บันทึกเอกสารจริงของแต่ละสินค้า: บันทึกราคา Word/PDF ที่ส่งโดยลูกค้า, บันทึกจากหน้าตารางราคาทางการ, บันทึกเอกสารคุณภาพ หรือภาพจอภาพของแต่ละสินค้าของให้อยู่ในไฟล์ส่วนตัวเพื่อ AI ไม่ผสมข้อมูลระหว่างหลายๆ ของ",
+      "เปลี่ยนชื่อให้เป็นแบบ SP_<CODE>_<NAME> เช่น SP_CRM01_TenPhanMemแหล่งข่าวทางการ วันตรวจ และส่วนจํากัด ไม่เพียงแค่เก็บประกาศ",
+      "ใน Google Sheets เลือก HOME  ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇   ⁇  MAU_TONG_HOP_NGHIEN_CUU หากคุณต้องการใส่แถวหลายแถวที่มีโครงสร้าง แต่ต้องลบแถวอิอฟิศการก่อนที่จะใช้ข้อมูลจริง",
+      "ย้อนตารางการคิด → รายการการค้นหา → รายการการค้นหา (AI) คอยรอจนกว่ากล่องการพูดจะแจ้งจํานวนไฟล์สินค้าที่ถูกบรรจุภาพที่ผ่านมาถูกระบุไว้ว่า ไม่ต้องติดเชื้อในครั้งต่อไป",
+      "เปิดหน้า SAN_PHAM ทุกไฟล์ต้องถูกต้องตามเส้นที่มีโค้ดตรงกัน และ ลงมาตามรูปแบบ CHO_DUYETราคา หน้าที่ ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา ราคา",
+      "ลงที่ AI รายงาน C ⁇ N KI ⁇ M TRA หรือเนื้อหาที่ไม่ทราบ: เปิดหน้าฉบับทางการและเติมมือแสดงตัวเลขตัวละ หน่วยเงินและเงื่อนไขที่ใช้กับตัวจริง",
+      "เมื่อข้อมูลทั้งหมดถูกนําไปตรงกันแล้ว ก็เปลี่ยน DA_KIEM_TRA เป็นสีฟ้า ไม่เพียงแค่เปลี่ยนสถานะไปข้างหน้าเท่านั้น แต่ก็แค่เส้น DA_KIEM_TRA ที่เหลือในระยะเวลา 90 วันเท่านั้นเข้าสู่การจัดอันดับผู้เข้าพัก"
     ],
-    callout:{title:"Kết quả của bước",text:"SAN_PHAM trở thành danh mục đã kiểm chứng. Hệ thống biết sản phẩm phù hợp với ai, không phù hợp với ai, có giới hạn gì và nguồn nào chứng minh; dữ liệu chưa chắc chắn vẫn bị giữ ở CHO_DUYET."},
+    callout:{title:"ผลการเดิน",text:"SAN_PHAM เป็นประเภทที่ได้รับการตรวจสอบ ระบบรู้ว่าสินค้าเหมาะกับใคร ไม่เหมาะกับใคร มีขีดจํากัดอะไร และแหล่งที่ยืนยันอะไรครับ"},
     detailImages:[["m6-07.jpg"],[],["m6-08.jpg"],["m6-09.jpg"],["m6-10.jpg"],[],["m6-11.jpg"]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-01.mp4"
   },
   {
-    id:"m6-buoc-03", n:"03", title:"Nạp, kiểm tra và duyệt chương trình đối tác",
+    id:"m6-buoc-03", n:"03", title:"รับโหลด, ตรวจสอบ และตรวจสอบโปรแกรมพันธมิตร",
     details:[
-      "Với mỗi sản phẩm đã DA_KIEM_TRA, tìm trang chương trình đối tác hoặc giới thiệu trên website chính thức của nhà cung cấp. Lưu điều khoản thành Google Docs, TXT, PDF hoặc ảnh chụp màn hình; mỗi chương trình để trong một tệp riêng.",
-      "Đổi tên theo mẫu DT_<MÃ>_<Tên> và dùng cùng mã với sản phẩm liên quan: nếu sản phẩm là SP_CRM01_... thì hồ sơ đối tác là DT_CRM01_.... Không dùng tên tùy ý vì mã là điểm nối giữa sản phẩm, chương trình đối tác và liên kết trong thư gửi khách.",
-      "Trước khi tải lên, kiểm tra đủ năm nhóm: cách ghi nhận khách; mức hoa hồng; điều kiện hủy hoặc đảo hoa hồng; kỳ thanh toán; giới hạn quảng bá. Thiếu nhóm nào cứ để thiếu và đánh dấu cần xác nhận; không lấy số từ bài giới thiệu không chính thức và không để AI tự bịa.",
-      "Đưa các tệp DT_ vào NAP_DU_LIEU rồi chạy lại 2. Nạp dữ liệu nghiên cứu (AI). Các tệp SP_ đã nạp trước đó không bị nạp lại. Sau thông báo hoàn tất, mở DOI_TAC và kiểm tra mỗi chương trình là một dòng CHO_DUYET.",
-      "Điền tay MÃ SP LIÊN QUAN và LINK GIỚI THIỆU. Mã sản phẩm phải khớp chính xác với SAN_PHAM; link giới thiệu phải là đường dẫn riêng được nhà cung cấp cấp sau khi đăng ký. Bỏ trống link thì thư tư vấn sau này phải hiện cảnh báo và không được gửi.",
-      "Duyệt từng chương trình bằng ba câu: khách được ghi nhận bằng cách nào; khi nào hoa hồng được duyệt; trường hợp nào bị hủy hoặc đảo. Đủ cả ba câu và nguồn hợp lệ thì đổi thành DA_DUYET. Còn câu phải hỏi lại thì CAN_XAC_NHAN; không nhận thị trường hoặc mô hình của bạn thì KHONG_THAM_GIA.",
-      "Đếm lại danh mục: nên giữ ba đến năm chương trình và mỗi nhóm nhu cầu chính có ít nhất một đối tác dự phòng. Mục tiêu là giảm phụ thuộc, không phải giữ thật nhiều link chưa kiểm chứng."
+      "สําหรับแต่ละสินค้าที่ DA_KIEM_TRA ครับ ค้นหาโปรแกรมคู่มือ หรือแนะนําในเว็บไซต์ทางการของผู้ให้บริการการถ่ายภาพจอ โปรแกรมแต่ละครั้ง",
+      "เปลี่ยนชื่อให้เป็นแบบ DT_<CODE>_<NAME> และใช้โค้ดเดียวกันกับสินค้าที่เกี่ยวข้อง: ถ้าสินค้าเป็น SP_CRM01_... แล้วรายงานคู่มือคือ DT_CRM01_... ไม่ใช้ชื่อตามที่ต้องการ เพราะโค้ดคือจุดเชื่อมต่อระหว่างสินค้า โปรแกรมพันธมิตร และเชื่อมต่อในจดหมายผู้เข้าพัก",
+      "ก่อนที่จะโหลดดูทั้งหมด 5 กลุ่ม คือ วิธีการจดหมายผู้เข้าพัก ราคาค่าตอบแทน ราคาการยกเลิกหรือการยกเลิกค่าตอบแทน ช่วงจ่ายเงิน ราคาการส่งเสริม จํานวนกลุ่มไหนไม่ถูก และให้หมายเลขที่ต้องถูกต้องไม่เอาเลขจากข้อแนะนําที่ไม่เป็นทางการ และไม่ให้ AI ทําตัวเอง",
+      "ใส่ไฟล์ DT_ ลงใน NAP_DU_LIEU แล้วเปิดใหม่ 2. โหลดข้อมูลการศึกษา (AI) ไฟล์ SP_ ที่เคยโหลดไปก่อนหน้านี้ไม่ได้โหลดใหม่ตรวจสอบรายการแต่ละรายการเป็นสาย CHO_DUYET",
+      "เติมมือ รหัสสินค้าที่เกี่ยวข้อง ลง QUAN และ LINK ลงเติมเงินไทยฟรีการลงทะเบียน ลงเอกสารที่ไม่ติดต่อต่อ ให้มีข้อความเตือน และไม่ส่ง",
+      "การออกแบบของรายการละครละ 3 ข้อ คือ วิธีการจดหมายผู้เข้าพัก เมื่อไรที่การจดหมายถูกรับรอง และกรณีที่ยกเลิกหรือถอนได้ ทั้ง 3 ข้อและแหล่งที่เหมาะสมก็เปลี่ยนเป็น DA_DUYETและคําถามที่ต้องถามคือ CAN_XAC_NHAN ไม่ยอมรับตลาดหรือแบบของคุณ KHONG_THAM_GIA",
+      "คัดเลขประเภท: ควรเก็บ 3 ถึง 5 โปรแกรม และกลุ่มความต้องการหลักละคนมีผู้ร่วมมือกันอย่างน้อย"
     ],
-    callout:{title:"Ranh giới trung lập",text:"Dữ liệu hoa hồng nằm ở DOI_TAC để vận hành và đối soát; bước AI phân loại khách chỉ được đọc SAN_PHAM đã kiểm tra, tuyệt đối không dùng mức hoa hồng để xếp sản phẩm."},
+    callout:{title:"ขอบเขตที่ไม่เป็นส่วนหนึ่ง",text:"ข้อมูลค่าชําระอยู่ที่ DOI_TAC สําหรับการดําเนินงานและการตรวจสอบ; ขั้นตอนการจัดประเภทลูกค้าด้วย AI ได้อ่านเพียง SAN_PHAM ที่ตรวจสอบ, โดยไม่มีการใช้ค่าชําระในการจัดอันดับสินค้าเลย."},
     detailImages:[[],[],[],["m6-12.jpg"],["m6-13.jpg"],["m6-14.jpg"],[]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-02.mp4"
   },
   {
-    id:"m6-buoc-04", n:"04", title:"Tạo biểu mẫu nhu cầu và kiểm tra luồng nhận khách",
+    id:"m6-buoc-04", n:"04", title:"การสร้างรูปแบบความต้องการ และตรวจสอบการรับแขก",
     details:[
-      "Chạy HỆ THỐNG GIỚI THIỆU → 3. Tạo biểu mẫu nhu cầu một lần duy nhất. Hệ thống bật chế độ thu email và tạo đúng bảy câu hỏi: quy mô nhân sự; số người trực tiếp dùng phần mềm; vấn đề cần giải quyết; công cụ hiện tại; ngân sách tối đa mỗi tháng; tính năng bắt buộc; thời gian muốn triển khai. NGUỒN KHÁCH được mã tự ghi là Biểu mẫu nhu cầu, không phải một câu hỏi riêng.",
-      "Mã tự nối biểu mẫu với bảng tính và gắn trình kích hoạt gửi biểu mẫu. Mỗi phản hồi mới phải được ghi vào KHACH_HANG với MÃ KHÁCH riêng, ngày nhận và trạng thái MOI. Không tự tạo trigger lần hai nếu hệ thống đã báo biểu mẫu tồn tại.",
-      "Chọn HỆ THỐNG GIỚI THIỆU → Xem liên kết hệ thống để lấy đường dẫn biểu mẫu. Mở đúng liên kết dành cho người trả lời, sau đó có thể gắn vào bài viết, chữ ký email hoặc tin nhắn tư vấn.",
-      "Tự điền một phản hồi thử bằng dữ liệu của bạn. Trả lời đủ các câu, bấm Gửi rồi quay lại KHACH_HANG. Kết quả đúng là có một dòng mới, không ghi đè dòng cũ, MÃ KHÁCH không trùng và TRẠNG THÁI DUYỆT = MOI.",
-      "Nếu biểu mẫu nhận phản hồi nhưng KHACH_HANG không có dòng mới, mở Apps Script → Trình kích hoạt và kiểm tra trigger onGuiBieuMau; đồng thời kiểm tra tài khoản đã cấp quyền. Chỉ chuyển sang phân loại khi luồng thử đã ghi dữ liệu đúng."
+      "รีบทําแบบต้องการครั้งเดียว ระบบเปิดระบบรับอีเมล และสร้างคําถาม 7 ข้อ ได้แก่ ขนาดบุคลากร จํานวนผู้ใช้โปรแกรมโดยตรง ปัญหาที่ต้องแก้การตัดสินใจ การใช้งานของปัจจุบัน การใช้งานของเดือนละสูงสุด การใช้งานที่จําเป็น การใช้งานในเวลาที่ต้องการใช้งาน การใช้งานที่ถูกเขียนเป็นแบบจํากัดของความต้องการ ไม่ใช่คําถามที่เฉพาะตัว",
+      "รหัสที่เชื่อมต่อแบบฟอร์มกับตารางบัตรและติดตั้งเครื่องประกอบการส่งแบบฟอร์ม. การตอบสนองใหม่แต่ละครั้งต้องถูกบันทึกใน KHACH_HANG โดยมี LOOK, วันรับและสถานการณ์ MOIกระตุ้นครั้งที่สอง หากระบบแจ้งว่ารูปแบบมีอยู่",
+      "เลือก ช่องทางการสอบถาม → ดูลิงค์ระบบเพื่อหาคําแนะนําแบบฟอร์ม เปิดลิงค์ให้กับผู้ตอบได้ถูกต้อง แล้วติดต่อกับบทความ, การสัญญาก่อนทางอีเมล หรือข้อความที่ปรึกษา",
+      "ทําแบบทดลองตอบด้วยข้อมูลของคุณ ตอบทุกคําถาม คลิกส่ง และกลับไปที่ KHACH_HANG ผลคือเส้นใหม่ ไม่ต้องขยายสายเก่า ไม่ต้องขัดแย้ง และไม่ต้องขัดแย้งหน่วยงาน: หน่วยงาน: หน่วยงาน:",
+      "ถ้าแบบฟอร์มรับคําตอบ แต่ KHACH_HANG ไม่มีเส้นใหม่ เปิด Apps Script → ปรับการทํางานและตรวจสอบ trigger onGuiBieuMau; และตรวจสอบบัญชีที่ได้รับอนุญาตการจัดประเภทเมื่อการทดลองใช้งานได้บันทึกข้อมูลถูกต้อง"
     ],
-    callout:{title:"Kết quả của bước",text:"Bạn có một biểu mẫu nhu cầu dùng được thật; mỗi phản hồi đi vào KHACH_HANG dưới dạng một hồ sơ MOI có mã riêng, sẵn sàng cho bước phân loại."},
+    callout:{title:"ผลการเดิน",text:"คุณมีแบบฟอร์มความต้องการที่ใช้จริง ทุกคําตอบเข้าสู่ KHACH_HANG ในรูปแบบของเอกสาร MOI ที่มีโค้ดส่วนตัว พร้อมสําหรับการจัดเรียง"},
     detailImages:[["m6-15.jpg"],[],["m6-16.jpg"],["m6-17.jpg","m6-18.jpg"],[]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-03.mp4"
   },
   {
-    id:"m6-buoc-05", n:"05", title:"Phân loại khách mới, đọc lý do và duyệt ba mức xử lý",
+    id:"m6-buoc-05", n:"05", title:"ประเภทผู้เข้าพักใหม่ อ่านเหตุผล และตรวจสอบการจัดการ 3 ระดับ",
     details:[
-      "Khi KHACH_HANG có dòng MOI, chạy HỆ THỐNG GIỚI THIỆU → 4. Phân loại khách mới (AI). Hệ thống chỉ lấy SAN_PHAM đang DA_KIEM_TRA và còn trong hạn 90 ngày để so với nhu cầu; dữ liệu hoa hồng và bảng DOI_TAC không được đưa vào prompt.",
-      "MUC_1 dùng khi thông tin đủ để đưa ra lựa chọn: trạng thái chuyển CHO_DUYET, kèm tối đa ba sản phẩm, lý do phù hợp và điểm cần cân nhắc. MUC_2 dùng khi thiếu dữ liệu khách: trạng thái CAN_HOI_THEM và cột THÔNG TIN CÒN THIẾU phải ghi rõ cần hỏi gì. MUC_3 dùng cho chuyển dữ liệu cũ, tích hợp phức tạp, dữ liệu nhạy cảm hoặc hợp đồng lớn: trạng thái CHUYEN_NGUOI.",
-      "Đọc cột lý do trước khi sửa trạng thái. Nếu lý do nói thiếu thông tin của khách thì giữ MUC_2. Nếu thiếu dữ liệu sản phẩm, quay lại SAN_PHAM để cập nhật, đổi khách về MOI rồi chạy phân loại lại; không hỏi khách về phần dữ liệu thuộc trách nhiệm của bạn.",
-      "Với MUC_1, đọc từng đề xuất, lý do và điểm chưa phù hợp. Chỉ khi đồng ý mới đổi CHO_DUYET thành DA_DUYET. Nếu AI xếp chưa đúng, sửa tay mức và trạng thái; quyền quyết định luôn thuộc người kinh doanh.",
-      "Với MUC_2, giữ CAN_HOI_THEM để bước sau tạo thư hỏi đúng phần còn thiếu. Với MUC_3, giữ CHUYEN_NGUOI và trao đổi trực tiếp; hệ thống cố ý không tạo thư tư vấn tự động cho nhóm này.",
-      "Điều kiện dừng: không có sản phẩm DA_KIEM_TRA còn hạn thì mục 4 phải từ chối chạy; AI trả mã sản phẩm không có trong danh mục thì giữ khách ở MOI kèm ghi chú lỗi. Không sửa bỏ các chốt này để ép hệ thống tạo đề xuất."
+      "เมื่อ KHACH_HANG มีแถวสถานะ MOI ให้เรียกเมนู HỆ THỐNG GIỚI THIỆU → 4. Phân loại khách mới (AI) ระบบใช้เฉพาะข้อมูล SAN_PHAM ที่มีสถานะ DA_KIEM_TRA และยังไม่เกิน 90 วันเพื่อเทียบกับความต้องการ โดยไม่ส่งข้อมูลค่าคอมมิชชันหรือ DOI_TAC เข้าไปในพรอมต์",
+      "ใช้ MUC_1 เมื่อข้อมูลเพียงพอสำหรับการคัดเลือก: เปลี่ยนสถานะเป็น CHO_DUYET พร้อมเสนอสินค้าไม่เกิน 3 รายการ เหตุผลที่เหมาะสม และประเด็นที่ควรพิจารณา ใช้ MUC_2 เมื่อข้อมูลลูกค้าไม่พอ: เปลี่ยนเป็น CAN_HOI_THEM และระบุข้อมูลที่ยังขาด ใช้ MUC_3 สำหรับการย้ายข้อมูลเดิม การเชื่อมต่อซับซ้อน ข้อมูลอ่อนไหว หรือสัญญาขนาดใหญ่: เปลี่ยนเป็น CHUYEN_NGUOI",
+      "อ่านคอลัมน์เหตุผลก่อนแก้ไขสถานการณ์ หากเหตุผลบอกว่าไม่มีข้อมูลของลูกค้า ก็เก็บ MUC_2 หากไม่มีข้อมูลสินค้า ก็กลับไปที่ SAN_PHAM เพื่ออัพเดท และแลกลูกค้าไป MOIแล้วรีคัดเลือกมัน ไม่ถามผู้เข้าพักเกี่ยวกับส่วนที่ข้อมูลของคุณเป็นหน้าที่",
+      "ด้วย MUC_1, อ่านข้อเสนอทุกข้อ, เหตุผลและจุดที่ไม่เหมาะสม. เพียงตกลงที่จะเปลี่ยน CHO_DUYET เป็น DA_DUYET. หาก AI ลงอันดับผิด, ปรับระดับและสถานะ; อํานาจในการตัดสินใจยังคงอยู่.\nมันเป็นธุรกิจ",
+      "กับ MUC_2 จับ CAN_HOI_THEM เพื่อเดินต่อมาสร้างข้อความถามที่เหลือได้อย่างถูกต้อง กับ MUC_3 จับ CHUYEN_NGUOI และแลกเปลี่ยนตรงไปเลย ระบบตั้งใจไม่สร้างข้อความแนะนําอัตโนมัติให้กับกลุ่มนี้",
+      "หมดสัญญากลด: ไม่มีสินค้า DA_KIEM_TRA มีเวลาหมดแล้ว ส่วนที่ 4 ต้องปฏิเสธการทํางาน; AI จะคืนรหัสสินค้าที่ไม่มีในหมวดหมู่ แล้วเก็บผู้เข้าพักที่ MOI พร้อมบันทึกความผิดพลาดเอากุญแจพวกนี้ทิ้งไว้ เพื่อกดกระบวนการให้คําแนะนํา"
     ],
-    callout:{title:"Kết quả cần đạt",text:"Mỗi khách mới được phân mức trong ngày, có lý do đọc được và không khách nào nhận tư vấn trước khi người kinh doanh duyệt. MUC_3 luôn quay về người thật."},
+    callout:{title:"ผลที่ต้องหา",text:"ทุกคนถูกจัดให้เป็นตัวใหม่ในวันนั้น มีเหตุผลที่จะอ่าน และไม่มีผู้เข้ารับการปรึกษาใด ๆ ก่อนที่นักธุรกิจจะค้นหา"},
     detailImages:[["m6-19.jpg"],["m6-20.jpg"],[],["m6-21.jpg"],[],[]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-04.mp4"
   },
   {
-    id:"m6-buoc-06", n:"06", title:"Tạo thư nháp, kiểm tra thủ công và đánh dấu đã gửi",
+    id:"m6-buoc-06", n:"06", title:"การสร้างใบประกอบการตรวจสอบด้วยมือและการประกอบการส่ง",
     details:[
-      "Sau khi duyệt trạng thái khách, chạy HỆ THỐNG GIỚI THIỆU → 5. Tạo thư nháp gửi khách. Khách DA_DUYET nhận thư tư vấn gồm lựa chọn, lý do, điểm cần cân nhắc và link giới thiệu hợp lệ; khách CAN_HOI_THEM nhận thư hỏi bổ sung; khách CHUYEN_NGUOI không có thư tư vấn.",
-      "Mở Gmail → Thư nháp. Đây mới là bản nháp, hệ thống không tự gửi. Đối chiếu đúng người nhận, mã khách, tên sản phẩm, mức giá, phạm vi phù hợp, giới hạn và câu chữ cam kết. Không biến lời giải thích thành lời hứa kết quả.",
-      "Kiểm tra liên kết chỉ được lấy từ chương trình DOI_TAC đang DA_DUYET. Nếu thư hiện cảnh báo đỏ do thiếu liên kết, không gửi bản đó; quay lại DOI_TAC, bổ sung LINK GIỚI THIỆU, xác nhận mã sản phẩm liên quan rồi chạy lại mục 5.",
-      "Khi nội dung đã đúng, người kinh doanh tự bấm Gửi trong Gmail. Hệ thống không được thay bạn gửi tự động vì đây là điểm kiểm duyệt cuối cùng trước khi thông tin đến khách.",
-      "Gửi xong, quay lại KHACH_HANG, bấm vào một ô trên đúng dòng khách và chọn HỆ THỐNG GIỚI THIỆU → 6. Đánh dấu đã gửi (dòng đang chọn). Kiểm tra TRẠNG THÁI DUYỆT đổi thành DA_GUI và cột NGÀY GỬI có thời điểm. Chọn sai dòng sẽ ghi nhận sai khách nên phải đối chiếu MÃ KHÁCH trước khi chạy."
+      "หลังจากดูสถานการณ์ของแขกแล้ว กรอก HANDLE TO THE GOST → 5. สร้างอีเมลของแขก.แขก DA_DUYET ได้รับจดหมายแนะนํารวมถึงตัวเลือก, เหตุผล, ข้อคิดเห็น และลิ้งค์ไปยังข้อแนะนํา.\nลูกค้า CAN_HOI_THEM ได้รับจดหมายสอบถามเพิ่มเติม ลูกค้า CHUYEN_NGUOI ไม่มีจดหมายคําปรึกษา",
+      "เปิด Gmail → สะดวก. นี่คือสะดวก, ระบบไม่ส่งเอง. สื่อตรงของผู้รับ, รหัสลูกค้า, ชื่อสินค้า, ราคา, ขนาดที่เหมาะสม, ขั้นต่ําและคําสัญญากับไม่เปลี่ยนคําอธิบายเป็นสัญญาผล",
+      "การตรวจสอบเชื่อมต่อได้จากโปรแกรม DOI_TAC ที่อยู่ DA_DUYET หากมีข้อความที่แสดงถึงการเตือนแดงจากความขาดเชื่อมต่อ ไม่ส่งเอกสารนั้นครับ ยืนยันรหัสสินค้าที่เกี่ยวข้อง แล้วรีบไปที่ 5",
+      "เมื่อเนื้อหาถูกต้อง ผู้ประกอบการก็กดส่งใน Gmail ระบบไม่สามารถเปลี่ยนคุณส่งอัตโนมัติ เพราะนี่คือจุดตรวจสอบสุดท้าย ก่อนที่ข้อมูลจะถึงผู้เข้าพัก",
+      "ส่งเสร็จแล้วกลับ KHACH_HANG คลิกเซลล์ที่ตรงตรงเส้นทางผู้เข้า และเลือก ช่องทางที่ผ่านมา → 6 ตราที่ส่ง (ช่องทางที่เลือก) ตรวจสอบ ช่องทางที่ผ่านมา เปลี่ยนเป็น DA_GUI และคอลัมน์การเลือกเส้นที่ผิด จะทําให้ผู้โดยสารผิดพลาด ต้องไปตรงกับผู้โดยสารก่อนที่จะวิ่ง"
     ],
-    callout:{title:"Ranh giới gửi thư",text:"AI chỉ chuẩn bị nội dung. Người kinh doanh chịu trách nhiệm kiểm tra sản phẩm, giá, giới hạn, liên kết và tự bấm Gửi; sau đó mới dùng menu để ghi dấu chống nhầm và theo dõi hoa hồng."},
+    callout:{title:"สายขอบหมาย",text:"AI เตรียมเนื้อหาเท่านั้น ผู้ประกอบการรับผิดชอบในการตรวจสอบสินค้า ราคา จํากัด สัมพันธ์ และการกดส่งเองสีชมพู"},
     detailImages:[["m6-22.jpg"],["m6-23.jpg"],[],["m6-24.jpg"],["m6-25.jpg"]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-05.mp4"
   },
   {
-    id:"m6-buoc-07", n:"07", title:"Nhập báo cáo đối tác và đối soát hoa hồng",
+    id:"m6-buoc-07", n:"07", title:"ลงรายงานการร่วมมือและการซื้อขายดอกไม้",
     details:[
-      "Chọn HỆ THỐNG GIỚI THIỆU → Xem liên kết hệ thống, mở NAP_HOA_HONG và tải MAU_HOA_HONG.csv. Giữ nguyên tên và thứ tự cột, xóa dòng minh họa trước khi điền dữ liệu thật. Không đổi mã khách, mã đối tác hoặc mã giao dịch sang kiểu số làm mất ký tự đầu.",
-      "Chuẩn hóa báo cáo đối tác để mỗi dòng có MA_KHACH, MA_DOI_TAC, MA_GIAO_DICH, ngày ghi nhận, trạng thái, hoa hồng dự kiến, hoa hồng đã duyệt, tiền đã nhận, ngày dự kiến nhận, nguồn báo cáo và ghi chú. Các mức tiền phải tách riêng; không điền tiền dự kiến vào cột tiền đã nhận.",
-      "Đưa CSV vào NAP_HOA_HONG rồi chạy 7. Nhập báo cáo hoa hồng. Hệ thống thêm dòng mới hoặc cập nhật dòng cũ theo cặp MA_DOI_TAC + MA_GIAO_DICH, sau đó đổi tên tệp bằng tiền tố DA_NHAP_ để lần chạy sau không nhập lại cùng báo cáo.",
-      "Mở HOA_HONG và kiểm tra đúng mã khách, đối tác, giao dịch, ngày và ba cột tiền. Sau đó chạy 8. Đối soát hoa hồng. Lưu ý sách có chỗ ghi nhầm mục 7 cho bước đối soát; menu của mã đang dùng là mục 8.",
-      "Mã tính CHENH_LECH_DOI_SOAT = HOA_HONG_DU_KIEN - HOA_HONG_DA_DUYET và TIEN_CON_PHAI_THU = HOA_HONG_DA_DUYET - TIEN_DA_NHAN. Dòng lệch được tô màu để điều tra; khoản còn phải thu lớn hơn 0 được cảnh báo riêng.",
-      "Xử lý từng dòng lệch bằng chứng từ và trao đổi thật: ghi nguyên nhân, mã chứng từ hoặc nội dung đã xác nhận với đối tác vào GHI_CHU. Không xóa số lệch khi chưa có căn cứ, không dùng HOA_HONG_DU_KIEN làm doanh thu và không tăng quảng cáo nếu còn giao dịch quá kỳ thanh toán chưa được giải thích. Chỉ TIEN_DA_NHAN là dòng tiền đã về."
+      "เลือก HOME ภาพลิงค์ → ดูระบบ, เปิด NAP_HOA_HONG และโหลด MAU_HOA_HONG.csv. รักษาชื่อและลําดับคอลัมน์, ลบภาพลิงค์ ก่อนที่จะเติมข้อมูลจริง ไม่เปลี่ยนคอล์ตาร์, คอล์ตาร์การแลกเปลี่ยนตัวเลข หรือตัวเลขที่ลดตัวเลขตัวแรก",
+      "ปรับปรุงรายงานผู้ร่วมมือให้แต่ละสายมี MA_KHACH, MA_DOI_TAC, MA_GIAO_DICH, วันที่บันทึก, สถานการณ์, ค่าอัตราคาด, ค่าอัตราคาดที่ได้รับการรับรอง, เงินที่ได้รับ, วันที่คาดรับ, แหล่งข่าวเงินที่ได้รับมานั้นต้องแยกกันไป ไม่ต้องใส่เงินที่คาดหมายไว้ในคอลัมน์เงินที่ได้รับ",
+      "ใส่ CSV ใน NAP_HOA_HONG แล้วทําการ 7 ใส่รายงานสกุลเงินระบบเพิ่มสายใหม่ หรืออัพเดทสายเก่า ตามคู่ MA_DOI_TAC + MA_GIAO_DICH แล้วเปลี่ยนชื่อไฟล์เป็นตัวเลขDA_NHAP_ เพื่อให้การทํางานต่อไปไม่นํารายงานไป",
+      "เปิด HOA_HONG และตรวจสอบสิทธิ์ผู้เข้า,คู่หู, การซื้อขาย, วัน, และสามคอลัมน์ แล้วทํา 8 ค่าออมสินใช้เป็นข้อ 8",
+      "คอร์ดการแสดง CHENH_LECH_DOI_SOAT = HOA_HONG_DU_KIEN - HOA_HONG_DA_DUYET และ TIEN_CON_PHAI_THU = HOA_HONG_DA_DUYET - TIEN_DA_NHANแต่คุณก็ไม่",
+      "การจัดการรายละเอียดของหลักฐานและแลกเปลี่ยนจริง: เขียนสาเหตุ, รหัสหลักฐาน หรือเนื้อหาที่ยืนยันกับคู่หูใน GHI_CHUHOA_HONG_DU_KIEN เป็นการทํารายได้ และไม่เพิ่มการประกาศ หากยังมีการซื้อขายเกินระยะที่ยังไม่ได้อธิบาย"
     ],
-    callout:{title:"Ba mức tiền phải tách riêng",text:"Hoa hồng dự kiến cho biết khả năng; hoa hồng đã duyệt là nghĩa vụ đối tác đã xác nhận; tiền đã nhận mới là tiền thực thu. Đối soát giúp nhìn rõ khoảng cách giữa ba mức này."},
+    callout:{title:"เงินสามระดับต้องแยกกัน",text:"หุ้นตราคาดหมายแสดงความสามารถ หุ้นตราที่ผ่านมาเป็นความรับผิดชอบที่คู่หูยืนยัน และเงินที่ได้รับเป็นเงินจริง การสื่อสารช่วยให้เห็นความห่างไกลระหว่างระดับสามนี้"},
     detailImages:[["m6-26.jpg"],[],["m6-27.jpg"],["m6-28.jpg"],["m6-29.jpg"],[]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-06.mp4"
   },
   {
-    id:"m6-buoc-08", n:"08", title:"Kiểm tra rủi ro, đặt lịch tự động và dùng bảng điều khiển",
+    id:"m6-buoc-08", n:"08", title:"ตรวจสอบความเสี่ยง การตั้งกําหนดเวลาอัตโนมัติ และใช้แผ่นควบคุม",
     details:[
-      "Chạy HỆ THỐNG GIỚI THIỆU → 9. Kiểm tra rủi ro. Lưu ý sách có chỗ ghi nhầm mục 7; menu thực tế của mã là mục 9. Hệ thống mở báo cáo trên màn hình, gửi bản sao vào email của tài khoản đang chạy và ghi nhật ký.",
-      "Kiểm tra dữ liệu sản phẩm: dòng thiếu NGÀY KIỂM TRA hoặc quá 90 ngày bị chuyển CAN_CAP_NHAT. Mở lại NGUỒN CHÍNH THỨC, đối chiếu giá, gói, tính năng và giới hạn; sửa dữ liệu và nội dung liên quan trước, sau đó mới cập nhật ngày và chuyển lại DA_KIEM_TRA. Không chỉ đổi ngày để xóa cảnh báo.",
-      "Kiểm tra phụ thuộc đối tác: báo cáo tính tỷ trọng HOA_HONG_DA_DUYET của 90 ngày gần nhất. Khi một đối tác chiếm từ 70% trở lên, rà lại phương án thay thế và bổ sung đối tác dự phòng cho nhóm nhu cầu chính; đây là cảnh báo quản trị, không phải lệnh tự động chuyển khách.",
-      "Kiểm tra ghi nhận và thanh toán: truy lại khách đã DA_GUI nhưng chưa có dòng trong HOA_HONG bằng MA_KHACH; kiểm tra các khoản đã duyệt nhưng quá NGAY_DU_KIEN_NHAN bằng MA_GIAO_DICH. Mỗi trường hợp phải có ghi chú và bằng chứng trao đổi với đối tác.",
-      "Rà nội dung và dữ liệu khách: mở LINK_NOI_DUNG của sản phẩm CAN_CAP_NHAT để sửa giá, tính năng hoặc giới hạn cũ. Biểu mẫu chỉ nên giữ dữ liệu cần cho lựa chọn; trước khi đưa sang AI hoặc đối tác, loại trường không cần thiết và không gửi dữ liệu nhạy cảm.",
-      "Chạy 10. Đặt lịch tự động. Mã xóa các trigger lịch cũ của chính hệ thống rồi tạo lịch kiểm tra rủi ro lúc 8 giờ thứ Hai và đối soát hoa hồng lúc 16 giờ thứ Sáu, tránh tạo lịch trùng. Kiểm tra Apps Script → Trình kích hoạt để thấy đúng hai lịch.",
-      "Chọn Mở bảng điều khiển. Hộp thoại tự đọc số liệu mới nhất từ năm trang tính và hiển thị khách theo trạng thái, hoa hồng dự kiến, đã duyệt, đã nhận, cảnh báo, việc cần làm, tỷ trọng đối tác và sản phẩm quá hạn. Bảng điều khiển không gọi Drive hoặc AI khi mở và không cần trình kích hoạt riêng.",
-      "Dùng bảng điều khiển để biết việc tiếp theo, nhưng xử lý dữ liệu ở trang tính gốc: duyệt khách, cập nhật sản phẩm, ghi chú khoản lệch và kiểm tra đối tác. Sau mỗi thay đổi, bấm Tải lại dữ liệu trong bảng điều khiển để xem kết quả mới."
+      "ตรวจสอบ RISK ระบุว่าหนังสือถูกเขียนผิด ข้อ 7 เมนูของโค้ดคือ ข้อ 9\nบัญชีนี้ทํางานและเก็บบันทึก",
+      "ตรวจสอบข้อมูลสินค้า: รายการที่ขาดค่าใช้จ่าย TRA หรือเกิน 90 วันที่โอน CAN_CAP_NHAT เปิดใหม่ รายการการ, เปรียบเทียบราคา, แพ็คเกจ, คุณสมบัติและจํากัด; ปรับข้อมูลและภายในแถมอัพเดทวัน และย้ายไป DA_KIEM_TRA ไม่ใช่แค่เปลี่ยนวัน เพื่อลบเตือน",
+      "การตรวจสอบพึ่งพากัน: รายงานการประมาณ HOA_HONG_DA_DUYET ของ 90 วันที่ผ่านมา เมื่อพึ่งพากัน คิดเป็น 70% ขึ้นไป, ซื้อตัวแทนและเพิ่มคู่หูสํารองให้กลุ่มผู้ต้องการสะพานหลัก นี่คือการเตือนผู้บริหาร ไม่ใช่การสั่งการส่งผู้เข้าพักโดยอัตโนมัติ",
+      "การตรวจสอบการบันทึกและการชําระเงิน: ติดตามผู้เข้าพักได้ DA_GUI แต่ยังไม่มีเส้นใน HOA_HONG เท่ากับ MA_KHACH; การตรวจสอบข้อสอบที่ผ่าน แต่เกิน NGAY_DU_KIEN_NHAN เท่ากับ MA_GIAO_DICH.ในกรณีนี้ต้องมีบันทึกและหลักฐานที่ต้องแลกเปลี่ยนกับคู่หู",
+      "ผนังเนื้อหาและข้อมูลผู้เข้าพัก: เปิด LINK_NOI_DUNG ของสินค้า CAN_CAP_NHAT เพื่อแก้ไขราคา, คุณสมบัติ หรือขีดจํากัดที่เก่าหรือคู่มือกัน ซึ่งเป็นวิชาที่ไม่จําเป็น และไม่ส่งข้อมูลที่มีความสัมผัส",
+      "รถที่ 10 ติดตั้งโปรแกรมอัตโนมัติ ปิดกําหนดการเก่าของระบบเอง แล้วสร้างโปรแกรมตรวจสอบความเสี่ยงในวันจันทร์ที่ 8 และตลาดตลาดในวันศุกร์ที่ 4 เพื่อให้ไม่เกิดโปรแกรมที่ซับซ้อนtra Apps Script → ปรับตัวเพื่อดูเวลาสองวัน",
+      "เลือกเปิดปานิชั่น กล่องเสียงอ่านข้อมูลล่าสุดจาก 5 หน้าและแสดงให้ผู้เข้าชมเห็นสถานะ ค่าออมสินที่คาดหวัง ผ่านการค้นหา ได้รับ การเตือน การทํางาน รายการผู้เข้าร่วมและสินค้าที่หมดอายุ ป้ายกํากับไม่เรียก Drive หรือ AI เมื่อเปิด และไม่จําเป็นต้องใช้โปรแกรมเปิดตัว",
+      "ใช้งานปานีเพื่อทราบสิ่งที่ต่อไป แต่จัดการข้อมูลในหน้าประกอบ: บราว์ผู้เข้า, อัพเดทสินค้า, จดบันทึกการหลุดทาง และตรวจสอบผู้ร่วมมือจะอยู่ในตารางการควบคุม เพื่อดูผลงานใหม่ๆ"
     ],
-    callout:{title:"Kết quả vận hành hằng tuần",text:"Thứ Hai nhận cảnh báo rủi ro, thứ Sáu đối soát hoa hồng; bảng điều khiển cho biết trạng thái hiện tại bất cứ lúc nào. Hệ thống cảnh báo và sắp việc, còn quyết định sản phẩm, đối tác, nội dung và tiền vẫn do người kinh doanh thực hiện."},
+    callout:{title:"ผลการดําเนินงานรายสัปดาห์",text:"วันจันทร์รับการเตือนความเสี่ยง วันศุกร์รับการตรวจสอบดอกไม้ แผนที่แสดงสถานการณ์ในขณะใด ระบบเตือนและเตรียมการทํางานและเงินก็ยังเป็นของผู้ประกอบการ"},
     detailImages:[["m6-30.jpg"],[],[],[],[],["m6-31.jpg"],["m6-32.jpg"],[]], calloutImages:[], defaultVideo:"/steps/videos/model6/part-07.mp4"
   }
 ];

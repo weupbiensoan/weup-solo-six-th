@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
+import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import "./video.css";
+import "./thai.css";
 
-const beVietnamPro = Be_Vietnam_Pro({
-  variable: "--font-be-vietnam-pro",
-  subsets: ["latin", "vietnamese"],
+const notoSansThai = Noto_Sans_Thai({
+  variable: "--font-noto-sans-thai",
+  subsets: ["latin", "thai"],
   weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
@@ -16,20 +17,20 @@ const siteOrigin = process.env.VERCEL_PROJECT_PRODUCTION_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
-  title: "WEUP SoloSix | Hướng dẫn 6 mô hình kinh doanh",
-  description: "WEUP SoloSix — cổng hướng dẫn chuyên nghiệp gồm câu lệnh, bộ mã và hình ảnh thao tác chi tiết cho 6 mô hình kinh doanh.",
+  title: "WEUP SoloSix | คู่มือ 6 โมเดลธุรกิจ",
+  description: "WEUP SoloSix — ศูนย์รวมคู่มือระดับมืออาชีพ พร้อมพรอมต์ ชุดโค้ด และภาพอธิบายแบบละเอียดสำหรับ 6 โมเดลธุรกิจ",
   openGraph: {
-    title: "WEUP SoloSix | Hướng dẫn 6 mô hình kinh doanh",
-    description: "Câu lệnh · Mã nguồn · Thao tác · Hình ảnh",
-    images: [{ url: "/og.png", width: 1731, height: 909, alt: "WEUP SoloSix — Hướng dẫn 6 mô hình kinh doanh" }],
-    locale: "vi_VN",
+    title: "WEUP SoloSix | คู่มือ 6 โมเดลธุรกิจ",
+    description: "พรอมต์ · ซอร์สโค้ด · ขั้นตอน · รูปภาพ",
+    images: [{ url: "/og.png", width: 1731, height: 909, alt: "WEUP SoloSix — คู่มือ 6 โมเดลธุรกิจ" }],
+    locale: "th_TH",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "WEUP SoloSix | Hướng dẫn 6 mô hình kinh doanh",
-    description: "Câu lệnh · Mã nguồn · Thao tác · Hình ảnh",
+    title: "WEUP SoloSix | คู่มือ 6 โมเดลธุรกิจ",
+    description: "พรอมต์ · ซอร์สโค้ด · ขั้นตอน · รูปภาพ",
     images: ["/og.png"],
   },
 };
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="vi" className={beVietnamPro.variable}><body>{children}</body></html>}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="th" className={notoSansThai.variable}><body>{children}</body></html>}

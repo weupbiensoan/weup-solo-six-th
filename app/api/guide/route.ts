@@ -33,10 +33,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isAdminRequest(request)) return Response.json({ error: "Bạn không có quyền cập nhật hướng dẫn." }, { status: 403 });
+  if (!isAdminRequest(request)) return Response.json({ error: "คุณไม่มีสิทธิ์ที่จะอัพเดทคําแนะนํา" }, { status: 403 });
   const body = await request.json().catch(()=>null) as { guide?: unknown } | null;
-  if (!body || !validGuide(body.guide)) return Response.json({ error: "Dữ liệu hướng dẫn không hợp lệ." }, { status: 400 });
-  if (!blobIsConfigured()) return Response.json({ error: "Chưa kết nối Vercel Blob." }, { status: 503 });
+  if (!body || !validGuide(body.guide)) return Response.json({ error: "ข้อมูลการแนะนําไม่ถูกต้อง" }, { status: 400 });
+  if (!blobIsConfigured()) return Response.json({ error: "ยังไม่ได้เชื่อมต่อ Vercel Blob" }, { status: 503 });
   await writeBlobText(guideKey(request), JSON.stringify(body.guide), "application/json; charset=utf-8");
   return Response.json({ ok: true });
 }

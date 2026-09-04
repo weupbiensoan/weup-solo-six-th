@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import Home from "../page";
 
 const modelMetadata:Record<string,{number:string;title:string;description:string}>={
-  "mo-hinh-1":{number:"1",title:"Kinh doanh chuyên môn và dịch vụ tư vấn",description:"Hướng dẫn triển khai hệ thống tư vấn dinh dưỡng 28 ngày từ câu lệnh, mã nguồn đến quy trình vận hành."},
-  "mo-hinh-2":{number:"2",title:"Dịch vụ 12 video ngắn mỗi tháng",description:"Hướng dẫn tự động hóa quy trình nhận hồ sơ, thu ảnh, tạo nội dung, kiểm tra và bàn giao video."},
-  "mo-hinh-3":{number:"3",title:"Sản phẩm tri thức bán nhiều lần",description:"Hướng dẫn biến kinh nghiệm và thương hiệu cá nhân thành sản phẩm tri thức có thể bán nhiều lần."},
-  "mo-hinh-4":{number:"4",title:"Báo cáo bán hàng tuần có kiểm duyệt",description:"Hướng dẫn xây hệ thống tự tính số liệu, tạo nhận xét AI, duyệt và gửi báo cáo bán hàng tuần."},
-  "mo-hinh-5":{number:"5",title:"Vận hành thương mại điện tử bằng mạng lưới đối tác",description:"Hướng dẫn vận hành sản phẩm, đơn hàng, tồn kho, hỗ trợ và đối soát cùng mạng lưới đối tác."},
-  "mo-hinh-6":{number:"6",title:"Xây hệ thống bán hàng và nhận hoa hồng bằng AI",description:"Hướng dẫn kiểm chứng danh mục, thu nhu cầu, giới thiệu sản phẩm và đối soát hoa hồng bằng AI."},
+  "model-1":{number:"1",title:"ธุรกิจความเชี่ยวชาญและบริการที่ปรึกษา",description:"คู่มือสร้างระบบให้คำปรึกษาด้านโภชนาการ 28 วัน ตั้งแต่พรอมต์ ซอร์สโค้ด ไปจนถึงขั้นตอนการดำเนินงาน"},
+  "model-2":{number:"2",title:"บริการวิดีโอสั้น 12 รายการต่อเดือน",description:"คู่มือทำให้กระบวนการรับข้อมูล เก็บภาพ สร้างเนื้อหา ตรวจสอบ และส่งมอบวิดีโอเป็นระบบอัตโนมัติ"},
+  "model-3":{number:"3",title:"ผลิตภัณฑ์ความรู้ที่ขายซ้ำได้",description:"คู่มือเปลี่ยนประสบการณ์และแบรนด์ส่วนบุคคลให้เป็นผลิตภัณฑ์ความรู้ที่ขายได้หลายครั้ง"},
+  "model-4":{number:"4",title:"รายงานยอดขายรายสัปดาห์แบบมีการตรวจทาน",description:"คู่มือสร้างระบบคำนวณข้อมูล สร้างข้อเสนอแนะด้วย AI ตรวจทาน และส่งรายงานยอดขายรายสัปดาห์"},
+  "model-5":{number:"5",title:"บริหารอีคอมเมิร์ซด้วยเครือข่ายพาร์ตเนอร์",description:"คู่มือบริหารสินค้า คำสั่งซื้อ สต็อก การสนับสนุน และการกระทบยอดร่วมกับเครือข่ายพาร์ตเนอร์"},
+  "model-6":{number:"6",title:"สร้างระบบการขายและรับค่าคอมมิชชันด้วย AI",description:"คู่มือตรวจสอบแคตตาล็อก เก็บความต้องการ แนะนำสินค้า และกระทบยอดค่าคอมมิชชันด้วย AI"},
 };
 
 export function generateStaticParams(){
@@ -18,7 +18,7 @@ export function generateStaticParams(){
 export async function generateMetadata({params}:{params:Promise<{model:string}>}):Promise<Metadata>{
   const {model:slug}=await params,model=modelMetadata[slug];
   if(!model)return {};
-  const title=`Mô hình ${model.number}: ${model.title}`;
+  const title=`โมเดล ${model.number}: ${model.title}`;
   return {title,description:model.description,openGraph:{title,description:model.description,images:[]},twitter:{title,description:model.description,images:[]}};
 }
 

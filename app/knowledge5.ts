@@ -1,198 +1,177 @@
 import type { GuideStep } from "./knowledge";
 
-export const promptText5 = `Tôi muốn xây dựng một hệ thống vận hành thương mại điện tử một người bằng Google Sheets và Google Apps Script. Người kinh doanh giữ quyền quyết định về sản phẩm, thương hiệu, dữ liệu, tiền và các trường hợp ngoại lệ; nhà sản xuất, đơn vị kiểm hàng, kho thuê ngoài, đơn vị vận chuyển, kênh bán và dịch vụ kế toán thực hiện các phần việc đã được phân định. AI chỉ hỗ trợ phân nhóm dữ liệu, tạo bản nháp và tổng hợp; không được tự quyết định nhập hàng, duyệt mẫu, xuất kho ngoại lệ, hoàn tiền hoặc khóa đối soát.
-
-Bối cảnh cài đặt: tôi tạo một Google Sheets trống tên VAN_HANH_TMDT, mở Apps Script từ chính bảng tính đó và dán mã. Hãy trả về đúng hai tệp đầy đủ trong một câu trả lời, mỗi tệp nằm trong một khối mã riêng và ghi rõ tên:
-1. Ma.gs chứa toàn bộ nghiệp vụ, cấu hình, menu, phần máy chủ của bảng điều khiển và là tệp duy nhất khai báo onOpen.
-2. bang_dieu_khien.html chứa giao diện bảng điều khiển.
-
-Ràng buộc kiến trúc bắt buộc:
-- Dùng SpreadsheetApp.getActiveSpreadsheet(); tuyệt đối không dùng SpreadsheetApp.create().
-- Chỉ Ma.gs được khai báo onOpen và tạo menu “Van hanh don hang”. Toàn bộ hàm máy chủ của bảng điều khiển, gồm hàm lấy chỉ số, hàm chạy mục và hàm mở bảng điều khiển, cũng phải nằm trong tệp này.
-- Tên hàm và biến viết tiếng Việt không dấu; chú thích, thông báo, email và câu lệnh gửi AI viết tiếng Việt có dấu.
-- Tra cột theo tên tiêu đề, không dựa vào vị trí cột cố định. Không dùng eval. Mọi hàm mà HTML gọi phải tồn tại thật trong Ma.gs; cuối câu trả lời phải có bảng đối chiếu tên hàm và nút giao diện gọi hàm đó.
-- Khóa API đọc từ PropertiesService.getScriptProperties() với tên KHOA_API; không ghi khóa vào mã hoặc trang tính.
-- Nhà cung cấp AI đọc từ CAU_HINH, hỗ trợ OPENAI hoặc ANTHROPIC. Tên model đọc từ MO_HINH_AI, số token đọc từ SO_TOKEN_TOI_DA và tự nâng tối thiểu lên 4000.
-- Mọi UrlFetchApp.fetch phải đặt muteHttpExceptions: true. Nếu API lỗi, ném lỗi kèm mã HTTP và nguyên văn nội dung trả về. Nếu AI trả JSON không hợp lệ, giữ nội dung thô trong cột JSON_THO hoặc thông báo rõ để người dùng đọc; không làm hỏng bảng và không dừng cả vòng lặp.
-- Không dùng getLastRow, getLastColumn hoặc appendRow để xác định dữ liệu vì ô văn bản dài và định dạng bảng có thể làm sai kết quả. Hãy đọc theo hàng tiêu đề, tìm dòng trống đầu tiên và ghi theo đúng tên cột.
-- Các cột số điện thoại, mã đơn và mã lô phải được định dạng văn bản để không mất số 0 đầu hoặc bị đổi định dạng.
-- Các thao tác có thể gây gửi thư, xuất kho hoặc tạo dữ liệu phải chống chạy trùng bằng mã đơn, ngày gửi, trạng thái hoặc dấu đã xử lý.
-
-Mười hai trang tính phải được tạo trong tệp đang mở, giữ nguyên dữ liệu cũ nếu chạy lại:
-1. CAU_HINH: KHOA, GIA_TRI, GHI_CHU.
-2. SAN_PHAM: MA_HANG, TEN_SP, PHIEN_BAN, THANH_PHAN, KICH_THUOC, VAT_LIEU, BAO_BI, GIA_BAN, GIA_VON_NHAP_KHO, MA_LO, TRANG_THAI_MAU, NGAY_DUYET_MAU.
-3. KIEM_TRA_SP: CAU_HOI, KIEM_TRA_O_DAU, DU_LIEU_THUC_TE, KET_LUAN.
-4. DU_LIEU_THO: NGAY_THU, NGUON, LOAI_NGUON, NGUYEN_VAN, SAN_PHAM_THAM_CHIEU, NHOM_AI, NHOM_DA_DUYET, MA_TRUNG.
-5. NHA_CUNG_CAP: MA_NCC, TEN, HANG_MUC, NGUOI_LIEN_HE, EMAIL, SO_LUONG_TOI_THIEU, GIA_CHAO, THOI_GIAN_SX, DIEU_KIEN_THANH_TOAN, DA_GUI_YEU_CAU, NGAY_GUI, DA_NHAN_BAO_GIA, TRANG_THAI_MAU, VAI_TRO.
-6. TON_KHO: MA_HANG, CO_THE_BAN, DANG_SAN_XUAT, CHO_KIEM_TRA, HANG_LOI, DANG_GIAO, HOAN_CHUA_KIEM, BAN_TB_NGAY, SO_NGAY_DU_HANG, DIEM_DAT_LAI, TIEN_TRONG_TON, NGAY_CAP_NHAT, NGUON_SO_LIEU.
-7. DON_HANG: MA_DON, NGAY_DAT, KENH_BAN, MA_HANG, SO_LUONG, TIEN_KHACH_TRA, HO_TEN, SO_DIEN_THOAI, DIA_CHI, TRANG_THAI, MA_VAN_DON, NGAY_GUI_KHO, MA_LO, GHI_CHU.
-8. HOAN_HUY: NGAY, MA_DON, KENH, NHOM_YEU_CAU, MUC_UU_TIEN, TOM_TAT, THONG_TIN_CON_THIEU, MAU_TRA_LOI, CAN_CON_NGUOI_DUYET, NGUOI_XU_LY, TRANG_THAI, NGAY_TRA_LOI, MA_LO, NGUYEN_NHAN_GOC, BEN_CHIU_TRACH_NHIEM, MA_NOI_DUNG.
-9. DOI_SOAT: MA_DON, NGAY, DOANH_THU_GHI_NHAN, PHI_NEN_TANG, PHI_THANH_TOAN, HO_TRO_VAN_CHUYEN, TIEN_THUC_NHAN, CHENH_LECH, KY_DOI_SOAT, GHI_CHU.
-10. NOI_DUNG: MA_NOI_DUNG, MA_HANG, LOAI, KENH, TIEU_DE, NOI_DUNG, NGUON_DAN, TRANG_THAI, NGUOI_DUYET, NGAY_DUYET, PHIEN_BAN, LINK, JSON_THO.
-11. LOI_NHUAN_DON: KHOAN_MUC, SO_DU_KIEN, SO_THUC_TE, NGUON_SO_THUC_TE, GHI_CHU.
-12. CANH_BAO: NGAY, LOAI_CANH_BAO, MA_HANG, NOI_DUNG, NGUONG, DA_XU_LY.
-
-Khi tạo khung, định dạng hàng tiêu đề, cố định hàng đầu, tạo danh sách xổ đúng cho trạng thái đơn, vai trò nhà cung cấp CHINH/DU_PHONG, trạng thái mẫu CHO_DUYET/DA_DUYET/TU_CHOI, trạng thái nội dung BAN_AI/CHO_DUYET/DA_DUYET, nguyên nhân gốc của hủy hoàn, mức ưu tiên, nhu cầu người duyệt và trạng thái đã xử lý. Gieo sẵn các câu hỏi kiểm tra sản phẩm và các khoản mục lợi nhuận trên mỗi đơn.
-
-CAU_HINH phải có sẵn: TEN_THUONG_HIEU, MA_HANG_CHINH, GIA_BAN, KENH_CHINH, NHA_CUNG_CAP, MO_HINH_AI, SO_TOKEN_TOI_DA, KICH_THUOC_LO_PHAN_NHOM, SO_DONG_NAP_MOI_LAN, EMAIL_KHO, EMAIL_QUAN_LY, EMAIL_NGUOI_DUYET, NGUOI_XU_LY_MAC_DINH, THOI_GIAN_SAN_XUAT_NGAY, TON_AN_TOAN, TY_LE_PHI_NEN_TANG, TY_LE_PHI_THANH_TOAN, HO_TRO_VAN_CHUYEN, NGUONG_TY_LE_NGUYEN_NHAN, NGUONG_TY_LE_LO, bốn ID thư mục, LINK_FORM_NHU_CAU, sáu câu lệnh AI và ba mẫu thư. Các ID thư mục và liên kết biểu mẫu do mã tự điền, người dùng không gõ tay.
-
-Menu “Van hanh don hang” phải có các mục khởi tạo và chẩn đoán: Tao khung trang tinh, Sua CAU_HINH, Tao cay thu muc, Kiem tra thu muc, Dat trinh kich hoat, Kiem tra ket noi API, Mo bang dieu khien. Sau đó có đúng các mục nghiệp vụ:
-1. Tao bieu mau thu du lieu.
-2. Nap du lieu nhu cau.
-3. Phan nhom nhu cau.
-4. Tao ban yeu cau san pham.
-4b. Tao ban yeu cau SP phien ban moi.
-5. Gui yeu cau lay bao gia.
-5b. Lam moi vong gui NCC.
-6. Tao danh sach kiem mau.
-7. Tao noi dung ban hang.
-8. Nhap don hang.
-9. Kiem tra don.
-10. Gui kho.
-11. Canh bao ton kho.
-12. Phan loai thu ho tro.
-13. Tong hop huy hoan.
-14. Doi soat ky.
-
-Các chức năng phải hoạt động như sau:
-1. Tạo khung trang tính, cấu hình, danh sách xổ, công thức tồn kho và các dữ liệu mẫu cần thiết; chạy lại không xóa dữ liệu người dùng.
-2. Tạo một thư mục gốc VAN_HANH_TMDT cùng ba thư mục con NAP_DU_LIEU, NAP_DON và HO_SO_NCC; lưu ID vào CAU_HINH. Mọi lần truy cập sau phải dùng ID, không dò tên trên toàn Drive, phải phát hiện thư mục nằm trong Thùng rác và có mục chẩn đoán đường dẫn thư mục.
-3. Tạo Google Form bốn câu hỏi, nối phản hồi về bảng tính đang mở, sinh trang RAW_NHU_CAU và lưu liên kết vào CAU_HINH. Khi đặt trình kích hoạt, xóa bộ cũ rồi tạo lại để không trùng; gồm kích hoạt biểu mẫu và các lịch tự động cần cho nạp dữ liệu, phân loại thư, cảnh báo tồn, tổng hợp hủy hoàn và đối soát.
-4. Nạp CSV hợp lệ từ NAP_DU_LIEU vào DU_LIEU_THO, giữ nguyên câu khách hàng, ghi nguồn, loại nguồn, mã chống trùng và đổi tên tệp đã nạp. Mỗi lần chỉ nạp tối đa SO_DONG_NAP_MOI_LAN.
-5. Phân nhóm nhu cầu theo lô KICH_THUOC_LO_PHAN_NHOM. Xóa email và số điện thoại trước khi gửi AI. AI chỉ gán nhóm cho câu được cung cấp, không suy đoán. Ghi NHOM_AI; người kinh doanh tự điền NHOM_DA_DUYET trước khi chuyển bước.
-6. Tạo bản yêu cầu sản phẩm từ các nhóm đã duyệt, gồm khách hàng và tình huống sử dụng, cấu hình sản phẩm và giới hạn kinh doanh. Mọi phần thiếu phải ghi CAN_XAC_NHAN; bản mới mang trạng thái BAN_AI. Người dùng sửa và chuyển sang DA_DUYET. Mục 4b luôn tạo một phiên bản mới, không ghi đè bản cũ.
-7. Tạo PDF mới từ bản YEU_CAU_SP đã duyệt, tên tệp phải có MA_HANG_CHINH, phiên bản và dấu thời gian; lưu trong HO_SO_NCC rồi gửi cho các nhà cung cấp có email. Không gửi lại khi đã có dấu đã gửi; mục 5b chỉ đặt lại vòng gửi theo chủ đích của người dùng.
-8. Từ bản yêu cầu đã duyệt, tạo DANH_SACH_KIEM_MAU và rút ra dòng SAN_PHAM. AI không được tự duyệt cảm giác cầm, độ bền, an toàn hoặc mức chấp nhận vật liệu. Người dùng duyệt mẫu thật bằng danh sách xổ; khi chuyển DA_DUYET thì ghi ngày duyệt.
-9. Chỉ dùng thông tin sản phẩm đã duyệt để tạo ba nội dung: MO_TA_SAN_PHAM, CAU_HOI_THUONG_GAP và KICH_BAN_VIDEO. Không bịa công dụng, kích thước, giá, chính sách hoặc lời hứa. Nội dung AI là bản nháp và phải được người dùng kiểm tra.
-10. Nhập CSV đơn hàng từ NAP_DON, chống trùng MA_DON và đổi tên tệp đã nạp. Kiểm tra mã hàng, số lượng, tồn có thể bán, họ tên, số điện thoại, địa chỉ và trạng thái; đơn đạt chuyển DU_DIEU_KIEN_XUAT, đơn lỗi giữ CHO_XAC_NHAN cùng lý do cụ thể. Không tự tạo mã hàng mới.
-11. Chỉ gửi kho các đơn DU_DIEU_KIEN_XUAT chưa có NGAY_GUI_KHO. Lấy MA_LO từ SAN_PHAM, gửi danh sách qua EMAIL_KHO, ghi ngày gửi và chuyển DA_GUI_KHO. Chạy lại không được gửi trùng.
-12. Tính BAN_TB_NGAY, SO_NGAY_DU_HANG, DIEM_DAT_LAI và TIEN_TRONG_TON. Khi CO_THE_BAN chạm điểm đặt lại, ghi CANH_BAO và gửi email quản lý; không tự quyết định số lượng đặt hoặc chuyển tiền. Người dùng đánh DA_XU_LY=CO sau khi xử lý.
-13. Chỉ đọc các thư Gmail được người dùng gắn nhãn KHTHU-CHO-XU-LY và loại trừ thư hệ thống. AI trả JSON gồm tóm tắt, nhóm yêu cầu, mức ưu tiên, thông tin thiếu, mẫu trả lời và cờ cần người duyệt. Hoàn tiền, hủy đơn, chất lượng, an toàn, quảng cáo sai và bồi thường luôn phải CAN_CON_NGUOI_DUYET=CO. Chỉ tạo thư nháp; tuyệt đối không tự gửi. Sau xử lý, chuyển nhãn sang KHTHU-DA-PHAN-LOAI và ghi HOAN_HUY.
-14. Tổng hợp hủy hoàn trong bảy ngày theo NGUYEN_NHAN_GOC và MA_LO. Cảnh báo khi một nguyên nhân vượt NGUONG_TY_LE_NGUYEN_NHAN hoặc một lô cao hơn NGUONG_TY_LE_LO lần mức trung bình. Không chạy khi còn nguyên nhân gốc trống.
-15. Trang LOI_NHUAN_DON phải có công thức tính tổng chi phí biến đổi và lợi nhuận còn lại trên mỗi đơn. Nạp tệp CSV có chữ DOI_SOAT từ NAP_DON vào DOI_SOAT, tính CHENH_LECH = DOANH_THU_GHI_NHAN - PHI_NEN_TANG - PHI_THANH_TOAN + HO_TRO_VAN_CHUYEN - TIEN_THUC_NHAN. Chênh lệch khác 0 phải được con người giải thích trước khi khóa kỳ hoặc cập nhật số thực tế.
-16. Kiểm tra kết nối API bằng một lệnh ngắn và báo rõ 401, 404, 429. Bảng điều khiển phải mở nhanh, chỉ đọc trang tính để lấy chỉ số; nút chạy dùng bảng ánh xạ tường minh từ tên hàm sang hàm thật, không eval. Các hành động liên quan hàng hóa hoặc tiền phải có bước xác nhận trên giao diện.
-
-Nguyên tắc chuyên môn và an toàn trong mọi câu lệnh gửi AI:
-- Không bịa nhu cầu, số liệu, vật liệu, chứng nhận, công dụng, giá, chính sách, báo giá hoặc bằng chứng.
-- Thiếu dữ liệu phải ghi CAN_XAC_NHAN, không suy đoán.
-- AI không tự chọn nhà cung cấp, không duyệt mẫu, không quyết định nhập lô, không tự xuất đơn lỗi, không hứa đền bù và không tự gửi thư khách hàng.
-- Người kinh doanh giữ quyền quyết định về sản phẩm, giá, mẫu, hợp đồng, thanh toán, tồn kho, hoàn tiền, khiếu nại và khóa đối soát.
-
-Cuối câu trả lời, hướng dẫn chính xác: tạo hai tệp ở đâu; đặt KHOA_API như thế nào; chạy hàm khoiTaoBangTinh trước; thứ tự tạo cây thư mục, kiểm tra API, tạo biểu mẫu và đặt trình kích hoạt; các quyền cần cấp; cách mở bảng điều khiển; và cách kiểm tra kết quả của từng mục từ 1 đến 14.`;
+export const promptText5 = `ผมอยากสร้างระบบออพาร์ทเมนต์การค้าอิเล็กทรอนิกส์สําหรับคนเดียว โดยใช้ Google Sheets และ Google Apps Script
+และข้อยกเว้นคือ ผู้ผลิตหน่วยตรวจสอบ ห้องเก็บสินค้าหน่วยขนส่ง ช่องทางการขาย และบริการบัญชี ที่ทําส่วนที่ได้รับมอบหมาย
+กลุ่มข้อมูล, สร้างแฮชและประสาน; ไม่ตัดสินใจเกี่ยวกับการนําเข้า, การส่อง, การส่งออก, การคืนเงินหรือการปิดคอนเตอร์
+ชื่อ VAN_HANH_TMDT เปิด Apps Script จากกระดาษตารางเองและติดตั้งรหัส ย้อนกลับไฟล์ทั้ง 2 ใบถูกต้องในคําตอบเดียว ทุกไฟล์อยู่ในบล็อกรหัสแยกและเขียนชื่อ: 1.
+2. state_dieu_khien.html มีแหล่งสัมพันธ์ของดัชบอร์ด
+- ใช้ SpreadsheetApp.getActiveSpreadsheet(); ไม่ใช้ SpreadsheetApp.create() - มีเพียง Ma.gs ที่ประกาศในOpen และสร้างเมนู ?? Vanh hanh donh
+แผนควบคุม รวมถึงฟังก์ชันการอ индекси, ฟังก์ชันการทํางานและฟังก์ชันการเปิดต้องรวมอยู่ในไฟล์นี้เช่นกัน - ชื่อฟังก์ชันและประโยคในภาษาเวียดนามที่ไม่ระบุ; คํานวณ, ประกาศ, อีเมลและประโยค
+คําสั่ง AI เพื่อส่งข้อความภาษาเวียดนาม มีเครื่องหมาย - ค้นหาคอลัมน์ตามหัวข้อ ไม่ใช่ตามตําแหน่งที่คอลัมน์อยู่
+มีเครื่องคอนเตอร์ชื่อฟังก์ชันและปุ่มอินเตอร์เฟส ที่เรียกฟังก์ชันนั้น - ปุ่ม API ที่อ่านจาก PropertiesService.getScriptProperties() ด้วยชื่อ KHOA_API; ไม่ล็อคในโค้ดหรือแท็บ - ผู้ให้บริการ AI
+ชื่อตัวอย่างอ่านจาก MO_HINH_AI เลขเครื่องหมายอ่านจาก SO_TOKEN_TOI_DA และการยกตัวเองอย่างน้อย 4000
+muteHttpExceptions: true. หาก API ประหลาด, โปรดโยนความผิดพลาด พร้อมกับรหัส HTTP และเนื้อหาเดิมที่คืน. หาก AI ย้อน JSON ไม่ถูกต้อง, รักษาเนื้อหาสดในคอลัมน์ JSON_THO หรือแจ้งให้ผู้ใช้ทราบอย่างชัดเจน
+- อย่าใช้ getLastRow, getLastColumn หรือ appendRow เพื่อกําหนดข้อมูล เพราะเซลล์ข้อความยาวและการฟอร์เมทตารางสามารถทําให้ผลผิด
+- สตางของเลขโทรศัพท์, รหัสเดี่ยวและรหัสชุดต้องมีรูปแบบเอกสารเพื่อไม่สูญเสียศูนย์เริ่มต้นหรือถูกรูปแบบใหม่
+การปฏิบัติงานที่อาจทําให้มีอัตราจดหมาย, การออกงานภายนอกหรือการสร้างข้อมูล ต้องใช้โค้ดเดียว, วันส่ง, สถานการณ์หรือตราการแปรรูปต้องสร้างหน้า 12 ตัวในไฟล์ที่เปิด
+ข้อมูลถูกเก็บไว้ในรูปแบบดังนี้: 1. CAU_HINH: KHOA, GIA_TRI, GHI_CHU. 2. SAN_PHAM: MA_HANG, TEN_SP, PHIEN_BAN, THANH_PHAN, KICH_THUOC, VAT_LIEU, BAO_BI, GIA_BAN, GIA_VON_NHAP_KHO,
+และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิหาริชย์ของเผ่าพันธุ์ และพระราชูปาฏิชาชนุ์
+อันดับแรกคือ อันดับที่ 1 อันดับที่ 2 อันดับที่ 2 อันดับที่ 3 อันดับที่ 3 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่
+และพระราชาของทายาทของยูดา และพระราชาของทายาทของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และพระราชาของยูดา และบุตรชายของพวกเขา
+อันดับแรก คือ อันดับที่ 1 อันดับที่ 2 อันดับที่ 3 อันดับที่ 3 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับที่ 7 อันดับ 7 อันดับที่ 7 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4 อันดับ 4
+ทีนี้, ครั้งแรกที่ผมเห็นนี่ ผมต้องไปออกกําลังกาย
+และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาฏิชย์แห่งใต้ และพระราชูปาฏิหาริชย์แห่งใต้ และพระราชูปาชาแห่งใต้ และพระราชูปาชาแห่งใต้ และพระราชูปาฏิชัยแห่งประเทศ
+อันดับแรกคือ อันดับที่ 1 อันดับที่ 2 อันดับที่ 2 อันดับที่ 3 อันดับที่ 3 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันดับที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 5 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 5 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 4 อันที่ 5 อันที่ 5 อันที่ 5 อันที่ 5 อันที่ 5 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 5 อันที่ 6 และ 6 อันที่ 6 อันที่ 5 และ 6 อันที่ 6 อันที่ 5 และ 6 อันที่ 6 อันที่ 6 อันที่ 5 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 5 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 5 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 5 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 6 อันที่ 5 อันที่ 6 อัน
+LOI_NHUAN_DON: KHOAN_MUC, SO_DU_KIEN, SO_THUC_TE, NGUON_SO_THUC_TE, GHI_CHU. 12.
+แถลงที่ 1 ติดตั้ง, รายการที่ถูกต้องของสารบรรยากาศส่วนเล็กสําหรับสถานะเดียว, หน้าที่ผู้ให้บริการ CHINH/DU_PHONG, สถานะแบบแบบ CHO_DUYET/DA_DUYET/TU_CHOI, สถานะเนื้อหา BAN_AI/CHO_DUYET/DA_DUYET,
+เหตุผลการยกเลิกครั้งแรก ความสําคัญ ความต้องการของเครื่องใช้งานและสถานะของเครื่องใช้งานได้ถูกแก้ไข
+ชื่อประเทศในโลกดังนี้: TEN_THUONG_HIEU, MA_HANG_CHINH, GIA_BAN, KENH_CHINH, NHA_CUNG_CAP, MO_HINH_AI, SO_TOKEN_TOI_DA, KICH_THUOC_LO_PHAN_NHOM, SO_DONG_NAP_MOI_LAN, EMAIL_KHO, EMAIL_QUAN_LY,
+อันดับแรก คือ อันดับแรก อันดับสอง อันดับสอง อันดับสาม อันดับสาม อันดับสาม อันดับสาม อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันดับสี่ อันสี่ อันสี่ อันดับสี่ อัน
+ID ไดเร็คทีอรี่ LINK_FORM_NHU_CAU, องค์การ AI หก และแบบลวดข้อความสาม ตัวอักษร ID ไดเร็คทีอรี่ และลิ้งเอกสารแบบเป็นแบบที่เต็มตัวเอง, ไม่มีผู้ใช้งาน
+และการวินิจฉัย: ผมเป็นเว็บมาสเตอร์ Sua CAU_HINH ผมเป็นผู้รวบรวมตัวอย่าง ผมเป็นผู้รวบรวมตัวอย่าง Dath kich hoat ผมเป็น ket noi API Mo bang dieu khien แล้วก็มีประเภทงานที่เหมาะสม: 1.
+ฉันจะเป็นคนที่ดีมาก ฉันจะเป็นคนที่ดีมาก
+ฉันต้องไปถ้ํา ฉันต้องไปถ้ํา
+การทํางานต้องเป็นดังนี้: 1. สร้างตารางบัตร, การตั้งค่า, รายการถอด, สูตรประกอบสินค้าและข้อมูลตัวอย่างที่ต้องการ; ลงทําอีกครั้งโดยไม่ลบข้อมูลผู้ใช้งาน. 2. สร้างข้อความ.
+การเข้า VAN_HANH_TMDT ของเดิม พร้อมกับ 3 แบลเดอร์ NAP_DU_LIEU, NAP_DON และ HO_SO_NCC; กําหนด ID ให้เป็น CAU_HINH. การเข้าทุกครั้งต่อมาต้องใช้ ID ไม่ใช่ชื่อของ Drive ทั้งหมด เพื่อตรวจสอบ folder
+3. สร้างแบบฟอร์ม Google ด้วย 4 คําถาม เชื่อมคําตอบกับกระดาษตอกที่เปิด สร้างหน้า RAW_NHU_CAU และบันทึกลิ้งไปยัง CAU_HINH เมื่อคุณตั้ง
+กิจกรรมการเปิด, ลบ และสร้างใหม่ชุดเก่าให้มันไม่ตรงกัน; รวมฟอร์มการเปิดและตารางการอัตโนมัติที่จําเป็นสําหรับการอัพหลอดข้อมูล, การจัดลําดับข้อความ, การเตือนสําหรับการมี, การประสานการลบและการค counter-loading.
+CSV ที่มีสิทธิจาก NAP_DU_LIEU ไป DU_LIEU_THO จะรักษาคําอธิบายลูกค้า จัดบันทึกแหล่ง, ประเภทแหล่ง, รหัสป้องกันไวรัส และเปลี่ยนชื่อไฟล์ที่ถูกอัพโหลด ทุกครั้งเพียงอัพโหลดสูงสุด SO_DONG_NAP_MOI_LAN
+AI มอบหมายแค่กลุ่มประโยค ไม่ใช่คําเดา
+NHOM_DA_DUYET ก่อนย้าย 6. สร้างคําขอสินค้าจากกลุ่มที่ได้รับการอนุมัติ, รวมถึงลูกค้าและสถานการณ์การใช้งาน, การตั้งค่าสินค้าและขอบเขตธุรกิจ
+can_XAC_NHAN; เวอร์ชั่นใหม่ที่มีสถานะ BAN_AI. ผู้ใช้งานแก้ไขและเปลี่ยนไป DA_DUYET. ส่วน 4b จะสร้างเวอร์ชั่นใหม่เสมอ ไม่เขียนแบบเดิม. 7. สร้าง PDF ใหม่จากเวอร์ชั่น YEU_CAU_SP ที่ได้รับการอนุมัติ,
+ชื่อไฟล์ต้องมี MA_HANG_CHINH, ภาพและเวลาตรา; มันต้องบันทึกใน HO_SO_NCC และส่งไปยังผู้ให้บริการอีเมล
+8. จากคําขอที่ได้รับการดู, กรอก DANH_SACH_KIEM_MAU และวาดเส้น SAN_PHAM. AI ไม่ประเมินความรู้สึกจับ, ความยั่งยืน, ความปลอดภัยหรือการยอมรับวัสดุด้วยตนเอง.
+ใช้ตัวอย่างจริงในการดูในคาตาลogu; เมื่อโอน DA_DUYET, วันที่ดูถูกบันทึก. 9. ใช้ข้อมูลสินค้าที่ดูเพียงเพื่อสร้างเนื้อหาสามอย่าง: MO_TA_SAN_PHAM, CAU_HOI_THUONG_GAP และ
+KICH_BAN_VIDEO ไม่มีการสร้างประโยชน์ ขนาด ราคา ประโยค หรือสัญญา เนื้อหาของ AI เป็นการระบุและต้องตรวจสอบโดยผู้ใช้
+MA_DON และเปลี่ยนชื่อไฟล์ที่อัพหลอดมา ตรวจสอบเลขลําดับเลข รายการขายที่อาจเกิดขึ้น ชื่อสกุลเลขโทรศัพท์ ที่อยู่และสถานะ การโอนแบบเดียว DU_DIEU_KIEN_XUAT ความผิดพลาดเดียวรักษา CHO_XAC_NHAN สติ
+11. ส่งเอกสาร DU_DIEU_KIEN_XUAT เท่านั้น ที่ยังไม่มี NGAY_GUI_KHO. เอา MA_LO จาก SAN_PHAM ส่งรายการผ่าน EMAIL_KHO จัดบันทึกวันส่งและโอน DA_GUI_KHO
+การรีนแบ็คไม่ได้ส่งแบบจําเน้น 12. คุณสมบัติ BAN_TB_NGAY, SO_NGAY_DU_HANG, DIEM_DAT_LAI และ TIEN_TRONG_TON. เมื่อ CO_THE_BAN ติดจุดการรีส็อต, บันทึก CANH_BAO และส่งอีเมลผู้บริหาร; ไม่自動的に
+ผู้ใช้งานเขียน DA_XU_LY=CO หลังการแปรรูป. 13. อ่านข้อความ Gmail ที่มีตรา KHTHU-CHO-XU-LY เท่านั้น โดยผู้ใช้งาน และยกเลิกข้อความระบบ. AI ย้อน JSON รวม
+สรุป กลุ่มคําขอ ความสําคัญ ข้อมูลที่ขาด รูปแบบตอบสนอง และธงที่ต้องการผู้เข้าชม
+Can_CON_NGUOI_DUYET=CO. แค่สร้างตรา; ไม่ต้องส่งเองเลย. หลังจากแปรรูป, โอนตราไปยัง KHTHU-DA-PHAN-LOAI และเขียน HOAN_HUY. 14.
+และ MA_LO. ระวังเมื่อสาเหตุเกิน NGUONG_TY_LE_NGUYEN_NHAN หรือแบตช์ที่สูงกว่า NGUONG_TY_LE_LO คูณเฉลี่ย. อย่าวิ่งเมื่อสาเหตุพื้นฐานว่าง
+LOI_NHUAN_DON ต้องมีสูตรสําหรับคํานวณค่าแปลงรวมและผลตอบแทนเหลือของแต่ละไฟล์ การบรรจุไฟล์ CSV ด้วยตัวอักษร DOI_SOAT จาก NAP_DON ไป DOI_SOAT โดยคํานวณ CHENH_LECH = DOANH_THU_GHI_NHAN -
+PHI_NEN_TANG - PHI_THANH_TOAN + HO_TRO_VAN_CHUYEN - TIEN_THUC_NHAN การเปลี่ยนแปลงอื่น ๆ 0 ต้องถูกมนุษย์อธิบายก่อนการปิดระยะเวลาหรือการปรับปรุงจํานวนจริง
+แผ่นควบคุมต้องเปิดเร็ว เพียงอ่านเพื่อให้ได้อัตราประกอบการปรับตัวเลข คันนี้จะทํางานของแผ่นผนังจากชื่อฟังก์ชันไปยังฟังก์ชันจริง ไม่ใช่ eval
+พริญญาทางอาชีพและความปลอดภัยในทุก AI ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง ส่ง
+- ไม่มีข้อมูลที่จะบันทึก CAN_XAC_NHAN ไม่มีการคาดเดา - AI ไม่เลือกผู้จัดส่ง ไม่ดูตัวอย่าง ไม่ตัดสินใจนําเข้า
+เจ้าของธุรกิจมีสิทธิที่จะตัดสินใจเกี่ยวกับสินค้า ราคา ตัวอย่าง การสัญญากับการจ่าย รายการสินค้า การคืนเงิน และความผิดพลาด
+ณ จบคําตอบ คําแนะนําแม่นยํา: ที่ไหนจะสร้างไฟล์สองไฟล์ วิธีการตั้ง KHOA_API วิ่งฟังก์ชัน Pre-Continue สั่งสร้างต้นตู้ ทดสอบ API สร้างตาราง
+แบบลอกแบบและตั้งตัวประกอบการอนุญาตให้บริการ วิธีเปิดตารางควบคุม และวิธีตรวจสอบผลของแต่ละรายการจาก 1 ถึง 14.`;
 
 export const steps5: GuideStep[] = [
   {
-    id:"m5-buoc-01", n:"01", title:"Dựng tệp trung tâm, dán hai tệp mã và khởi tạo hệ thống",
+    id:"m5-buoc-01", n:"01", title:"สร้างไฟล์กลาง, ใส่ไฟล์โค้ดสองตัว และเริ่มต้นระบบ",
     details:[
-      "Tạo một Google Sheets mới, đặt tên VAN_HANH_TMDT và để trống hoàn toàn. Không tự tạo trang tính hoặc gõ tên cột, vì hàm khởi tạo sẽ sinh toàn bộ mười hai trang, hàng tiêu đề, danh sách xổ và công thức. Từ chính bảng tính này, chọn Tiện ích mở rộng → Apps Script để dự án luôn gắn với đúng tệp trung tâm.",
-      "Trong Apps Script, xóa toàn bộ mã mẫu ở tệp Code.gs đang có rồi dán trọn nội dung tệp Ma.gs. Tệp này đã gồm nghiệp vụ, menu và toàn bộ hàm máy chủ của bảng điều khiển nên không cần tạo thêm WebApp.gs. Sau đó bấm dấu cộng cạnh mục Tệp, chọn HTML, đặt tên bang_dieu_khien, không gõ thêm đuôi .html, rồi dán mã giao diện. Kiểm tra dự án chỉ có hai tệp mã cần dùng và nhấn Ctrl+S. Tên bang_dieu_khien phải trùng chính xác với tên được dùng trong createTemplateFromFile.",
-      "Vào Cài đặt dự án → Thuộc tính của tập lệnh, thêm thuộc tính KHOA_API và dán khóa của nhà cung cấp mô hình vào ô giá trị. Khóa chỉ hiện cho người có quyền dự án; không ghi khóa vào CAU_HINH, không chụp màn hình và không gửi khóa cho người khác.",
-      "Trên thanh công cụ, chọn hàm khoiTaoBangTinh rồi bấm Chạy. Lần đầu, chọn đúng tài khoản, mở Nâng cao nếu Google báo ứng dụng chưa xác minh, đi tới dự án và bấm Cho phép. Sau khi chạy xong, quay lại bảng tính và tải lại trang; menu Van hanh don hang cùng mười hai trang CAU_HINH, SAN_PHAM, KIEM_TRA_SP, DU_LIEU_THO, NHA_CUNG_CAP, TON_KHO, DON_HANG, HOAN_HUY, DOI_SOAT, NOI_DUNG, LOI_NHUAN_DON và CANH_BAO phải xuất hiện.",
-      "Mở CAU_HINH và chỉ điền cột GIA_TRI cho tên thương hiệu, mã hàng chính, giá bán, kênh bán, nhà cung cấp AI, tên model, ba email, thời gian sản xuất, tồn an toàn và các tỷ lệ phí. Không gõ vào bốn ô ID thư mục hoặc LINK_FORM_NHU_CAU. Sau đó chạy lần lượt Tao cay thu muc → Kiem tra thu muc → Kiem tra ket noi API → 1. Tao bieu mau thu du lieu → Dat trinh kich hoat. Mở biểu tượng đồng hồ trong Apps Script để đối chiếu đủ lịch; mở bảng điều khiển ngay cả khi chưa có dữ liệu để dùng làm bản đồ cho mười bốn mục."
+      "สร้าง Google Sheets ใหม่, เรียกชื่อ VAN_HANH_TMDT และปล่อยให้ ว่างหมด. ไม่สร้างหน้าประกอบแบบเอง หรือเขียนชื่อคอลัมน์ เพราะการประกอบงานจะให้เกิดหน้าทั้งสิบสองหน้า, รายการหัวข้อ, รายการคอลัมน์ และจากตารางนี้ เลือก Extended utility → Apps Script เพื่อให้โครงการติดต่อกับไฟล์กลางได้เสมอ",
+      "ใน Apps Script ยกออกรหัสแบบทั้งหมดในไฟล์ Code.gs ที่มีแล้ว แล้วเลื่อนข้อมูลทั้งหมดในไฟล์ Ma.gsคุณต้องการสร้าง WebApp.gs อีกแล้ว คลิกเพิ่ม ริมหน้าของ File เลือก HTML เลือกชื่อ bang_dieu_khien ไม่ต้องเขียนหาง .html อีกแล้ว เลือกประกอบหน้าต่างใช้และดัน Ctrl+S ชื่อ bang_dieu_khien ต้องตรงกับชื่อที่ใช้ใน createTemplateFromFile",
+      "ในโครงการตั้ง → สินค้าของสกรต เพิ่มคุณสมบัติ KHOA_API และสตากล็อกของผู้ให้บริการแบบในเซลล์ค่าCAU_HINH ไม่ถ่ายจอ และไม่ส่งกุญแจไปยังคนอื่น",
+      "จากทุกลางเลือกงานประกอบการTaoBangTinh แล้วคลิ๊ก Run. ครั้งแรกเลือกบัญชีที่ถูกต้อง เปิด Upgrade หาก Google ไม่ตรวจสอบการใช้งานแล้ว ไปไปที่โครงการ และคลิ๊ก Permit. หลังจากที่ทํางานแล้ว กลับไปที่ตารางการทําการและโหลดหน้าใหม่; แมนู Van hanh don หักพร้อมกับหน้า 12 ใบ CAU_HINH, SAN_PHAM, KIEM_TRA_SP, DU_LIEU_THO, NHA_CUNG_CAP, TON_KHO, DON_HANG, HOAN_HUY, DOI_SOAT, NOI_DUNG, LOI_NHUAN_DON และCANH_BAO ต้องปรากฏ",
+      "เปิด CAU_HINH และเพียงเติมสตับ GIA_TRI ให้กับชื่อแบรนด์, รหัสสินค้าหลัก, ราคาขาย,ช่องขาย, ผู้จัดส่ง AI, ชื่อตัวอย่าง, สามอีเมล, เวลาผลิต, ความปลอดภัย และอัตราไม่ต้องเอกใน 4 ห้อง ID หัวข้อ หรือ LINK_FORM_NHU_CAU แล้วก็วิ่งไปตามลําดับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับ ครับเปิดสัญลักษณ์นาฬิกาใน Apps Script เพื่อนําไปตรงกับปฏิทินที่พอเพียง เปิดปานิเทศ แม้ว่ายังไม่มีข้อมูลเพื่อใช้เป็นแผนที่สําหรับสิบสี่ของรายการ"
     ],
-    callout:{title:"Kết quả của bước",text:"Bảng tính có đúng 12 trang, menu Van hanh don hang, thư mục gốc VAN_HANH_TMDT với ba thư mục con, khóa API nằm trong Script Properties và các trình kích hoạt không bị tạo trùng."},
+    callout:{title:"ผลการเดิน",text:"ตารางบอลมี 12 หน้าถูกต้อง menu Van hanh don ห้องถอน, หัวหน้าเดิม VAN_HANH_TMDT มีสาม หัวหน้าลูกหนัง, ป้าย API อยู่ใน Script Properties และเครื่องประกอบที่ไม่ได้สร้างประสม"},
     detailImages:[["m5-01.jpg"],[],[],["m5-02.jpg","m5-03.jpg"],["m5-16.jpg","m5-17.jpg","m5-04.jpg"]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-00.mp4"
   },
   {
-    id:"m5-buoc-02", n:"02", title:"Thu dữ liệu nhu cầu, nạp CSV và phân nhóm bằng AI",
+    id:"m5-buoc-02", n:"02", title:"รวบข้อมูลความต้องการ, โหลด CSV และแบ่งกลุ่มด้วย AI",
     details:[
-      "Chốt nguồn được phép sử dụng trước khi thu dữ liệu. Ưu tiên đánh giá và câu hỏi trên gian hàng của mình, báo cáo CSV xuất từ trang quản trị người bán, bình luận dưới video của mình và câu trả lời biểu mẫu do khách tự điền. Google Trends hoặc công cụ từ khóa chính thức chỉ là nguồn tham chiếu; không dùng phần mềm cào bình luận của gian hàng người khác.",
-      "Mục 1 tạo Google Form bốn câu hỏi, nối phản hồi về bảng tính và lưu liên kết vào CAU_HINH. Có thể gửi biểu mẫu cho nhóm thử nghiệm hoặc tự nhập dữ liệu mẫu. Mỗi dòng cần giữ nguyên câu khách hàng ở NGUYEN_VAN, có NGUON và LOAI_NGUON để sau này truy lại được.",
-      "Nếu có tệp CSV, mở Drive → VAN_HANH_TMDT → NAP_DU_LIEU, tải tệp lên rồi chạy 2. Nap du lieu nhu cau. Mở DU_LIEU_THO và kiểm tra số dòng mới, LOAI_NGUON là CSV, dữ liệu nguyên văn không bị sửa và MA_TRUNG đã giúp loại dòng trùng. Tệp đã xử lý phải được đổi tên để lần chạy sau không nạp lại.",
-      "Chạy 3. Phan nhom nhu cau. AI chỉ nhận các câu đã xóa email và số điện thoại, xử lý theo lô rồi ghi NHOM_AI; nó không được thêm nhu cầu không có trong dữ liệu. Đọc lại từng nhóm, sửa nếu cần và sao chép nhóm được chấp nhận sang NHOM_DA_DUYET. Chưa duyệt cột này thì không chuyển sang bản yêu cầu sản phẩm.",
-      "Đọc kết quả như một lớp kiểm chứng chứ không phải kết luận sản phẩm chắc chắn bán được. Sau nhóm vấn đề còn phải phỏng vấn, cho xem ý tưởng, thu tín hiệu muốn xem mẫu và kiểm chứng hành vi thanh toán hoặc đặt cọc trước khi bỏ tiền vào lô hàng."
+      "คีย์แหล่งที่อนุญาตให้ใช้ก่อนการเก็บข้อมูล หลักฐานการประเมินและคําถามบนบูนต์ของคุณ รายงาน CSV ออกจากหน้าบริหารผู้ขายของคุณ ความคิดเห็นภายใต้วีดีโอของคุณ และคําตอบแบบฟอร์มที่ผู้เข้าใช้งานทําเอง Google Trends หรือเครื่องมือกุลหลักทางการเป็นเพียงแหล่งที่อ้างอิงเท่านั้น ไม่ใช้อุปกรณ์การประเมินของบูนต์คนอื่น",
+      "หมวด 1 สร้าง Google Form คําถาม 4 คําตอบ ติดต่อคําตอบของตารางบอล และเก็บลิ้งค์ไปยัง CAU_HINH สามารถส่งแบบฟอร์มให้กลุ่มทดลอง หรือนําข้อมูลแบบฟอร์มเข้าด้วยตัวเองลูกค้าที่ NGUYEN_VAN มี NGUON และ LOAI_NGUON เพื่อติดตามในภายหลัง",
+      "ถ้ามีไฟล์ CSV, เปิด Drive → VAN_HANH_TMDT → NAP_DU_LIEU, โหลดไฟล์ขึ้น แล้วใช้ 2. Nap du lieu หมุนซ้อน. เปิด DU_LIEU_THO และตรวจสอบเลขสายใหม่, LOAI_NGUON เป็น CSV,การแก้ไขของเอกสารไม่ได้ และ MA_TRUNG ช่วยให้การแก้ไขของเอกสารที่ถูกแก้ไขต้องเปลี่ยนชื่อ เพื่อไม่ให้มันจะกลับมาใช้งานในครั้งต่อไป",
+      "รถที่ 3 ลงหน้าตู้ที่ซับซ้อน. AI รับแค่ข้อที่ลบไปจากอีเมลและเบอร์โทรศัพท์, ทําตามลําดับ และบันทึก NHOM_AI; มันไม่ได้เพิ่มความต้องการที่ไม่มีในข้อมูลโดยการแก้ไขตามต้องการ และเลียนกลุ่มที่ได้รับการยอมรับไปยัง NHOM_DA_DUYET",
+      "การอ่านผลการผลการตรวจสอบเป็นชั้นที่ไม่ควรสรุปว่าสินค้าจะขายได้แน่นอน หลังจากกลุ่มผู้มีปัญหาต้องสัมภาษณ์ ให้เห็นไอเดีย สัญญาณที่ต้องการดูแบบ และตรวจสอบพฤติกรรมการชําระเงิน หรือการฝากเงินก่อนที่จะฝากเงินเข้าคลัง"
     ],
-    callout:{title:"Không dùng AI làm bằng chứng mua",text:"AI có thể gom các câu giống nhau, nhưng lượt thích hoặc một nhóm bình luận không thay thế cho hành vi thanh toán. Không có người đặt cọc ở mức giá dự kiến thì phải dừng hoặc thử lại giả định chính."},
+    callout:{title:"ไม่ใช้ AI เป็นหลักฐานการซื้อ",text:"AI สามารถรวบรวมประโยคเดียวกันได้ แต่การเลือกของความชอบหรือกลุ่มความคิดเห็นนั้นไม่ได้เป็นตัวแทนสําหรับการทําการชําระเงินอีกครั้งก็เป็นข้อสรุปหลัก"},
     detailImages:[[],["m5-05.jpg"],["m5-06.jpg","m5-07.jpg"],["m5-08.jpg"],[]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-01.mp4"
   },
   {
-    id:"m5-buoc-03", n:"03", title:"Chuyển nhu cầu đã duyệt thành bản yêu cầu sản phẩm",
+    id:"m5-buoc-03", n:"03", title:"เปลี่ยนความต้องการที่ได้รับการอนุมัติเป็นความต้องการสินค้า",
     details:[
-      "Khi NHOM_DA_DUYET đã có dữ liệu, chạy 4. Tao ban yeu cau san pham. Hệ thống đọc các nhóm đã duyệt và tạo một dòng NOI_DUNG có LOAI = YEU_CAU_SP, gồm ba phần: khách hàng và tình huống sử dụng; cấu hình sản phẩm; giới hạn kinh doanh.",
-      "Mở ô NOI_DUNG của dòng vừa tạo và đọc từ đầu đến cuối. Tìm mọi chỗ CAN_XAC_NHAN rồi thay bằng quyết định hoặc dữ liệu thật về thành phần, kích thước, vật liệu, bao bì, giá mục tiêu, giá vốn tối đa, tiêu chí kiểm mẫu, phần nhà cung cấp không được tự đổi và nội dung không được phép cam kết. Không để AI tự đoán một ô nào trong bản sẽ gửi cho nhà sản xuất.",
-      "Khi bản yêu cầu đã đầy đủ, chuyển TRANG_THAI từ BAN_AI sang DA_DUYET, ghi người duyệt nếu quy trình nội bộ yêu cầu. Nếu muốn thay cấu hình sau này, dùng mục 4b. Tao ban yeu cau SP phien ban moi để tạo phiên bản mới; không ghi đè bản cũ vì báo giá, mẫu và nội dung phải truy được về đúng phiên bản.",
-      "Trước khi gửi ra ngoài, kiểm tra lại sản phẩm có phù hợp với bộ máy một người: còn tiền trên mỗi đơn sau chi phí biến đổi, dễ lưu kho và vận chuyển, ít biến thể, có tiêu chí kiểm mẫu rõ, yêu cầu pháp lý đã biết, có thể nhập thử số lượng nhỏ và có ít nhất một nguồn cung dự phòng."
+      "เมื่อ NHOM_DA_DUYET ได้ข้อมูลแล้ว ก็ใช้ 4. โปรแกรมการประกันสินค้า. ระบบอ่านกลุ่มได้ค้นพบและสร้างสาย NOI_DUNG ที่มี LOAI = YEU_CAU_SP, ประกอบด้วย 3 ส่วน: ลูกค้าและสถานการณ์การใช้งาน; การประกอบสินค้า; ขั้นต่ําธุรกิจ.",
+      "เปิดตู้ NOI_DUNG ของสายที่เพิ่งสร้าง และอ่านจากจุดเริ่มต้นไปจนจบ ค้นหาทุกจุด CAN_XAC_NHAN แล้วเปลี่ยนด้วยการตัดสินใจ หรือข้อมูลจริงเกี่ยวกับส่วนประกอบ ขนาด วัสดุ การบรรจุ ราคาเป้าหมาย ราคาการใช้เงินสูงสุด, มาตรฐานการทดลอง, ส่วนของผู้ให้บริการที่ไม่ได้เปลี่ยนเอง และเนื้อหาที่ไม่อนุญาตให้ยึดมั่น ไม่ให้ AI ตัดสินใจว่าเซลล์ใดในตัวอย่างจะส่งไปยังผู้ผลิต",
+      "เมื่อการขอเต็มแล้ว โอน TRANG_THAI จาก BAN_AI เป็น DA_DUYET และบันทึกผู้ค้นหา หากกระบวนการภายในต้องการยอมรับ SP แผนที่ใช้แล้วเพื่อสร้างฉบับใหม่; ไม่เลื่อนฉบับเก่า เพราะราคาประกาศ, รูปแบบและเนื้อหาต้องถูกตามล่าให้ถูกต้อง",
+      "ก่อนส่งออก ตรวจสอบผลิตภัณฑ์ให้เหมาะสมกับเครื่องมือของคนเดียว มีเงินต่อรายการ หลังการเปลี่ยนราคา การเก็บรักษาและขนส่งง่าย การปรับปรุงไม่มาก มีมาตรฐานการตรวจตัวอย่างชัดเจนข้อมูลที่ถูกกฎหมายบอกได้เลยว่า สามารถนําเข้าในจํานวนเล็กๆ และมีประเภทที่เหลืออย่างน้อย"
     ],
-    callout:{title:"Kết quả của bước",text:"NOI_DUNG có bản YEU_CAU_SP ở trạng thái DA_DUYET, không còn CAN_XAC_NHAN chưa xử lý và phiên bản được giữ nguyên để làm nguồn cho báo giá, kiểm mẫu và nội dung."},
+    callout:{title:"ผลการเดิน",text:"NOI_DUNG มีตัวอย่าง YEU_CAU_SP ในสถานการณ์ DA_DUYET ไม่มี CAN_XAC_NHAN ที่ยังไม่ได้ถูกแปรรูป และตัวอย่างถูกเก็บไว้เพื่อเป็นแหล่งสําหรับการประเมินราคา, การตรวจสอบตัวอย่างและเนื้อหา"},
     detailImages:[["m5-09.jpg"],["m5-10.jpg"],[],[]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-02.mp4"
   },
   {
-    id:"m5-buoc-04", n:"04", title:"Lập hồ sơ nhà cung cấp và gửi bản yêu cầu lấy báo giá",
+    id:"m5-buoc-04", n:"04", title:"สร้างรายงานผู้จัดส่ง และส่งใบขอราคา",
     details:[
-      "Mở NHA_CUNG_CAP, điền ít nhất hai dòng: mã nhà cung cấp, tên, hạng mục, người liên hệ và email. Cuộn sang cột VAI_TRO ở cuối bảng, chọn CHINH cho một dòng và DU_PHONG cho dòng còn lại. Các cột số lượng tối thiểu, giá chào, thời gian sản xuất và điều kiện thanh toán để trống cho đến khi nhận báo giá thật.",
-      "Chạy 5. Gui yeu cau lay bao gia. Hệ thống lấy bản YEU_CAU_SP đã duyệt, luôn tạo một PDF mới trong HO_SO_NCC, đặt tên có MA_HANG_CHINH, phiên bản và thời gian, rồi gửi đúng tệp cho các nhà cung cấp có email. Kiểm tra Drive có PDF mới và Gmail Đã gửi có đúng người nhận.",
-      "Khi nhà cung cấp phản hồi, ghi báo giá, số lượng tối thiểu, thời gian sản xuất, điều kiện thanh toán và trạng thái mẫu vào đúng dòng; không chỉ lưu trong tin nhắn. AI có thể hỗ trợ xếp thông tin thành bảng, nhưng không được tự chọn nhà cung cấp hoặc xếp hạng khi tiêu chí chưa được người kinh doanh chốt.",
-      "Nếu cần gửi một phiên bản yêu cầu mới, tạo bản 4b trước rồi dùng 5b. Lam moi vong gui NCC theo chủ đích. Không xóa dấu đã gửi để gửi lại tùy tiện. Luôn chuẩn bị một nguồn sản xuất và một phương án kho dự phòng, tối thiểu phải biết giá, thời gian đáp ứng và điều kiện chuyển đổi."
+      "เปิด NHA_CUNG_CAP, เติมอย่างน้อย 2 เส้น: รหัสผู้ให้บริการ, ชื่อ, ประเภท, ผู้ติดต่อ และอีเมล. เลื่อนไปยัง สมาชิก VAI_TRO ณ ปลายตาราง, เลือก CHINH สําหรับเส้นเดียว และ DU_PHONG ให้ข้อมูลขั้นต่ํา ขั้นต่ํา ราคาเสนอ ช่วงผลิต และเงื่อนไขการชําระเงิน ให้ว่างจนกว่าการรับราคาจริง",
+      "รถที่ 5 การรับประกันสินเชื่อที่เพิ่มขึ้น ระบบที่ใช้ YEU_CAU_SP ได้ตรวจสอบ ตลอดเวลาสร้าง PDF ใหม่ใน HO_SO_NCC ชื่อว่า MA_HANG_CHINH ลงเติมและเวลา แล้วส่งไฟล์ที่ถูกต้องไปผู้ให้บริการมีอีเมล ตรวจสอบว่า Drive มี PDF และ Gmail ได้ส่งมาแล้ว",
+      "เมื่อผู้ให้บริการตอบสนอง, จัดราคา, จํานวนขั้นต่ํา, เวลาผลิต,เงื่อนไขการชําระเงิน และสถานะตัวอย่างในเส้นตรง; ไม่เพียงแค่เก็บไว้ในข้อความ. AI สามารถสนับสนุนการจัดเรียงข้อมูลเป็น ตาราง, แต่ไม่เลือกผู้ให้บริการหรือจัดเรียงเมื่อมาตรฐานยังไม่ถูกประกอบโดยนักธุรกิจ",
+      "ถ้าต้องการส่งฉบับใหม่ของคําขอ ให้สร้างฉบับ 4b ก่อน และใช้ฉบับ 5b โดยใช้ฉบับ NCC โดยตั้งใจ ไม่ลบฉบับที่ส่งมาเพื่อส่งกลับให้เลือกและเป็นตัวเลือกสํารองที่ต้องรู้ราคา ขั้นต่ํา และเวลาตอบสนอง และเงื่อนไขการเปลี่ยน"
     ],
-    callout:{title:"Ranh giới trách nhiệm",text:"Đối tác thực hiện sản xuất và hậu cần, nhưng người kinh doanh vẫn duyệt mẫu, hợp đồng, lịch thanh toán, số lượng nhập và phương án dự phòng."},
+    callout:{title:"ขอบเขตความรับผิดชอบ",text:"พาร์ทเนอร์ทําการผลิตและจัดสรร แต่ผู้ประกอบการยังตรวจสอบตัวอย่าง การสัญญากับกําหนดการชําระเงิน จํานวนการนําเข้า และตัวเลือกสํารอง"},
     detailImages:[["m5-11.jpg"],["m5-12.jpg"],["m5-13.jpg"],[]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-03.mp4"
   },
   {
-    id:"m5-buoc-05", n:"05", title:"Kiểm mẫu, khóa mẫu chuẩn và tạo nội dung bán hàng",
+    id:"m5-buoc-05", n:"05", title:"ตรวจสอบตัวอย่าง ปิดตัวอย่างมาตรฐาน และสร้างรายการขาย",
     details:[
-      "Chạy 6. Tao danh sach kiem mau. Mã đọc dòng YEU_CAU_SP có TRANG_THAI = DA_DUYET, tạo một dòng NOI_DUNG mới có LOAI = DANH_SACH_KIEM_MAU và đồng thời rút các trường kỹ thuật sang SAN_PHAM. Mở NOI_DUNG và kiểm tra từng tiêu chí có mã, cách đo hoặc kiểm và ngưỡng chấp nhận.",
-      "Khi có mẫu thật, đối chiếu đủ thành phần, kích thước, trọng lượng và bề mặt với bản yêu cầu; dùng thử trong tình huống thật; chụp và đặt mã cho từng lỗi; xác định lỗi được chấp nhận hoặc phải loại. Cuối cùng duyệt một mẫu chuẩn cùng bao bì, nhãn, hướng dẫn và mã hàng để dùng cho các lô sau.",
-      "Ghi kết quả vào SAN_PHAM, không chỉ trao đổi trong tin nhắn. Chọn TRANG_THAI_MAU là CHO_DUYET, DA_DUYET hoặc TU_CHOI; khi duyệt, hệ thống ghi NGAY_DUYET_MAU. Không đặt lô sản xuất khi còn trạng thái khác DA_DUYET hoặc chưa có ảnh mẫu chuẩn lưu kèm. Nếu thuê kiểm trước khi hàng rời xưởng, biên bản phải dùng cùng mã sản phẩm, cùng mẫu chuẩn và cùng danh sách lỗi đã duyệt.",
-      "Sau khi thông tin và mẫu thật đã duyệt, chạy 7. Tao noi dung ban hang. Hệ thống chỉ đọc nguồn DA_DUYET và tạo ba dòng: MO_TA_SAN_PHAM, CAU_HOI_THUONG_GAP và KICH_BAN_VIDEO. Người kinh doanh kiểm lại công dụng, kích thước, giá và chính sách trước khi dùng; bản nháp không được trở thành nguồn chính thức.",
-      "Phân biệt ảnh sản phẩm thật, cảnh AI minh họa và đồ họa chữ. Ảnh thật phải thể hiện đúng màu, kích thước, thành phần và cách dùng; AI chỉ dựng tình huống khó quay; đồ họa dùng giải thích. Không chỉnh sản phẩm trông lớn hơn, bóng hơn hoặc có thêm thành phần. Chỉ phát hành khi ảnh thật đã thay hình ý tưởng và mọi tuyên bố truy được về THONG_TIN_SP đã duyệt."
+      "รถที่ 6 ชื่อ sach kiem เร็วเข้ารหัสอ่านสาย YEU_CAU_SP มี TRANG_THAI = DA_DUYET ทําให้สาย NOI_DUNG มี LOAI = DANH_SACH_KIEM_MAU และถอนแบบเทคนิคเปิด NOI_DUNG และตรวจสอบทุกประมาทที่มีโค้ด การวัดหรือตรวจสอบ และขั้นต่ําการรับ",
+      "เมื่อมีตัวอย่างจริง, เปรียบเทียบส่วนประกอบ, ขนาด, น้ําหนัก และพื้นผิวที่พอเพียงกับตัวอย่างที่ต้องการ; ทดลองในสถานการณ์จริง; ถ่ายภาพและตั้งรหัสสําหรับแต่ละปรับผิดพลาด; ติดความผิดพลาดที่รับทราบ; หรือและสุดท้ายก็ไปดูแบบมาตรฐาน พร้อมกับการพกแต่ง หมายเลข ใบแนะนํา และรหัสสินค้า เพื่อใช้ในสินค้าต่อมา",
+      "กรอกผลใน SAN_PHAM ไม่เพียงแค่แลกเปลี่ยนในข้อความการผลิตในสถานการณ์อื่น DA_DUYET หรือไม่มีรูปแบบมาตรฐานที่เก็บไว้ หากเช่าก่อนการออกของสินค้าหนังสือผิดพลาดที่ผ่านมา",
+      "หลังจากที่ข้อมูลและตัวอย่างจริงได้ค้นหาแล้ว ลงมา 7 คน ลงมาในตู้ถ้ํา. ระบบอ่านแหล่ง DA_DUYET เท่านั้น และสร้าง 3 เส้น: MO_TA_SAN_PHAM, CAU_HOI_THUONG_GAP และ KICH_BAN_VIDEO. ผู้ประกอบการตรวจสอบใช้งาน, ขนาด, ราคา และนโยบายก่อนใช้งาน; แหล่งฉบับไม่ได้กลายเป็นแหล่งฉบับทางการ.",
+      "การแยกภาพของสินค้าจริง, ภาพถ่าย AI เป็นภาพวาดและการเขียนภาพ.ภาพจริงต้องแสดงสี,ขนาด,ส่วนประกอบและวิธีการใช้ถูกต้อง; AI เป็นภาพถ่ายที่ยากไม่ต้องปรับแต่งสินค้าให้ดูใหญ่กว่า หรือมีส่วนประกอบมากกว่า แต่ต้องปล่อยมันให้ออกเมื่อภาพจริงเปลี่ยนรูปภาพ และทุกประกาศที่ถูกค้นหาเกี่ยวกับ THONG_TIN_SP ถูกค้นหา"
     ],
-    callout:{title:"AI không duyệt chất lượng",text:"AI có thể tạo danh sách kiểm và nội dung nháp; cảm giác cầm, độ bền, độ an toàn, mức chấp nhận vật liệu và quyết định duyệt mẫu phải do người thật thực hiện."},
+    callout:{title:"AI ไม่ผ่านมา",text:"AI สามารถสร้างรายการตรวจสอบและเนื้อหาของป้าย; ความรู้สึกของการจับ, ความทนทาน, ความปลอดภัย, ความยอมรับของวัสดุและการตัดสินใจในการตรวจสอบตัวอย่างต้องถูกทําโดยผู้มีตนเอง"},
     detailImages:[["m5-14.jpg"],[],[],["m5-15.jpg"],[]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-04.mp4"
   },
   {
-    id:"m5-buoc-06", n:"06", title:"Chọn kênh bán, nhập đơn mẫu và kiểm tra điều kiện xuất",
+    id:"m5-buoc-06", n:"06", title:"เลือกช่องทางการขาย, นําเสนอแบบ และตรวจสอบเงื่อนไขการออก",
     details:[
-      "Chọn một kênh bán đầu tiên và ghi vào KENH_CHINH. Tra biểu phí thật trong trang quản trị người bán rồi điền TY_LE_PHI_NEN_TANG, TY_LE_PHI_THANH_TOAN và HO_TRO_VAN_CHUYEN. Ô phải ở định dạng văn bản thuần: gõ 9 thay vì 9%, gõ 15000 thay vì 15.000đ. Nếu dùng số ước lượng, ghi rõ UOC LUONG ở cột ghi chú.",
-      "Xuất một CSV đơn hàng mẫu từ kênh bán, dùng dữ liệu của chính người kinh doanh, rồi tải vào VAN_HANH_TMDT/NAP_DON. Chạy 8. Nhap don hang và mở DON_HANG để kiểm tra đủ 12 dòng trong bộ thử, không có MA_DON trùng và tệp đã nạp được đổi tên.",
-      "Trước khi chạy kiểm tra, điền MA_LO của SAN_PHAM theo dạng ngày nhập cộng mã nhà cung cấp, ví dụ L20260210-NCC01, và đặt TON_KHO.CO_THE_BAN bằng số hàng thực sự bán được. Nếu để 0, mọi đơn sẽ bị báo vượt tồn. Mã hàng trong DON_HANG phải khớp chính xác với SAN_PHAM.",
-      "Chạy 9. Kiem tra don. Với bộ dữ liệu minh họa và tồn 30, kết quả đúng là 9 đơn DU_DIEU_KIEN_XUAT và 3 đơn CHO_XAC_NHAN: một đơn thiếu số điện thoại, một đơn mua 50 bộ vượt tồn và một đơn dùng mã hàng không tồn tại. GHI_CHU phải chỉ rõ lý do của từng dòng; hệ thống không được tự tạo mã hàng mới hoặc bỏ qua trường bắt buộc."
+      "เลือกช่องขายแรก และเขียนใน KENH_CHINH ตราราค่าใช้จ่ายจริงในหน้าบริหารผู้ขาย แล้วเติม TY_LE_PHI_NEN_TANG, TY_LE_PHI_THANH_TOAN และ HO_TRO_VAN_CHUYENแทน 9 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยน 15 เปลี่ยน 15000 เปลี่ยน 15000 เปลี่ยนไป",
+      "ออกแบบแบบของสินค้าจากช่องทางขาย โดยใช้ข้อมูลของผู้ประกอบการเอง แล้วโหลดเข้า VAN_HANH_TMDT/NAP_DON. ไปที่ 8 ลงมา และเปิด DON_HANG เพื่อตรวจสอบทั้งหมด 12 เส้นในชุดทดลอง ไม่มี MA_DON และไฟล์ที่ถูกโหลดเปลี่ยนชื่อ",
+      "ก่อนจะทดสอบ ลงเอกสาร MA_LO ของ SAN_PHAM ในรูปแบบของวันเข้าบวกรหัสผู้ให้บริการ เช่น L20260210-NCC01 และตั้ง TON_KHO.CO_THE_BAN เป็นจํานวนสินค้าที่ขายจริง0 ทุกรายการจะถูกแจ้งว่ามีการยึดตัว",
+      "รอบที่ 9 คิเมตรวิจัย don. ด้วยตัวประกอบข้อมูลอธิบายและมีอยู่ 30 รายการ ผลคือ 9 รายการ DU_DIEU_KIEN_XUAT และ 3 รายการ CHO_XAC_NHAN: 1 รายการขาดเบอร์โทรศัพท์, 1 รายการซื้อ 50 รายการรอดชีวิต, และ 1 รายการใช้รหัสบินที่ยังมีอยู่. GHI_CHU ต้องระบุเหตุผลของแต่ละสาย; ระบบไม่ควรสร้างรหัสลําดับใหม่เอง หรือยกเว้นกรณีที่จําเป็น."
     ],
-    callout:{title:"Điều kiện mở đơn thật",text:"Chỉ chuyển sang đơn thật khi dữ liệu mẫu chống được đơn trùng, chặn đúng đơn thiếu thông tin hoặc vượt tồn và giữ nguyên số điện thoại, mã đơn, mã lô dưới dạng văn bản."},
+    callout:{title:"ข้อตกลงในการเปิดตัว",text:"เพียงเปลี่ยนไปยังเอกสารจริง เมื่อข้อมูลแบบอย่างนี้ถูกป้องกันจากเอกสารที่ขาดข้อมูล หรือถูกปิดให้พ้น และเก็บตัวเลขโทรศัพท์ เอกสาร เอกสาร เอกสารเป็นเอกสาร"},
     detailImages:[[],[],["m5-18.jpg"],["m5-19.jpg"]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-05.mp4"
   },
   {
-    id:"m5-buoc-07", n:"07", title:"Gửi đơn đủ điều kiện sang kho và kiểm tra chống gửi trùng",
+    id:"m5-buoc-07", n:"07", title:"ส่งใบสมัครเข้าโกดัง และตรวจกันการส่งเชื้อ",
     details:[
-      "Khi thử luồng, dùng họ tên, số điện thoại và địa chỉ thật của chính người kinh doanh; không dùng thông tin khách thật vì email kho có thể tạo một đơn ngoài ý muốn. Kiểm tra EMAIL_KHO trong CAU_HINH trước khi chạy.",
-      "Chạy 10. Gui kho. Hệ thống chỉ lấy các dòng DU_DIEU_KIEN_XUAT chưa có NGAY_GUI_KHO, chép MA_LO từ SAN_PHAM, gửi danh sách qua email cho kho, ghi ngày gửi và chuyển trạng thái sang DA_GUI_KHO. Mở Gmail Đã gửi và đối chiếu đủ mã đơn, mã hàng, số lượng, người nhận, địa chỉ và mã lô.",
-      "Chạy mục 10 lần thứ hai. Lần thứ hai không được gửi lại đơn đã có NGAY_GUI_KHO. Kiểm tra cột MA_LO của đơn đã gửi có giá trị; thiếu mã lô thì phần phân tích hủy hoàn sau này không thể truy ngược lô hàng và nhà cung cấp.",
-      "Chỉ mở đơn thật khi các trường hợp thử cho đúng kết quả, lần chạy thứ hai không gửi trùng và mã lô đã được chép. Sau đó xóa dữ liệu thử. Kho thuê ngoài chỉ xuất đơn đã đủ điều kiện; đơn CHO_XAC_NHAN phải quay về người phụ trách để xử lý ngoại lệ."
+      "เมื่อทดลองการสลัดใช้ชื่อเบอร์โทรศัพท์ และที่อยู่ของผู้ประกอบการเอง ไม่ใช้ข้อมูลผู้เข้ารับจริง เพราะอีเมลออมสินสามารถสร้างรายการที่ไม่ต้องการ",
+      "รีคาร์ท 10 โพสเตอร์ ระบบจะเอาแต่เส้น DU_DIEU_KIEN_XUAT ที่ยังไม่มี NGAY_GUI_KHO เลยเลียน MA_LO จาก SAN_PHAM ส่งรายการไปทางอีเมลไปยังโพสเตอร์เปิด Gmail ส่งและเทียบข้อมูลทั้งหมด",
+      "เปิดโพท 10 ครั้งที่สอง ครั้งที่สอง ไม่ส่งไฟล์ใหม่มี NGAY_GUI_KHO ตรวจสอบคอลัมน์ MA_LO ของไฟล์ที่ส่งเพื่อดูว่ามันมีสิทธิหรือไม่\nการติดตามสินค้าและผู้จัดส่ง",
+      "เปิดเอกสารจริงเท่านั้น เมื่อกรณีทดลองให้ผลถูกต้อง การทดลองครั้งที่สองไม่ส่งเอกสารและบล็อกถูกเลียนออก จากนั้นลบข้อมูลทดลองCHO_XAC_NHAN ต้องกลับไปหาผู้บริหาร เพื่อจัดการข้อยกเว้น"
     ],
-    callout:{title:"Kết quả của bước",text:"Kho nhận đúng một email cho mỗi đợt đơn đủ điều kiện; DON_HANG có trạng thái DA_GUI_KHO, NGAY_GUI_KHO và MA_LO, còn các đơn lỗi vẫn nằm lại để con người xác nhận."},
+    callout:{title:"ผลการเดิน",text:"รับอีเมลได้อย่างถูกต้องสําหรับทุกครั้งที่สมัครงานได้; DON_HANG มีสถานะ DA_GUI_KHO, NGAY_GUI_KHO และ MA_LO, ส่วนข้อความผิดพลาดยังคงอยู่ให้การยืนยันของมนุษย์"},
     detailImages:[["m5-20.jpg"],[],[],[]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-06.mp4"
   },
   {
-    id:"m5-buoc-08", n:"08", title:"Phân loại thư hỗ trợ và giữ người thật ở quyết định nhạy cảm",
+    id:"m5-buoc-08", n:"08", title:"การจัดลําดับอักษรที่สนับสนุนและทําให้คนจริงตัดสินใจได้อย่างละเอียด",
     details:[
-      "Trong Gmail, mở thư khách hàng cần xử lý, bấm biểu tượng nhãn và gắn KHTHU-CHO-XU-LY. Tiêu đề nên có mã đơn để hệ thống đối chiếu. Không gắn nhãn này cho thư do chính hệ thống gửi; mã cũng phải loại thư có tiền tố [HE THONG].",
-      "Quay lại bảng tính và chạy 12. Phan loai thu ho tro. AI tóm tắt, gán nhóm yêu cầu, mức ưu tiên, thông tin còn thiếu, mẫu trả lời và cờ cần người duyệt. Kết quả được ghi vào HOAN_HUY; nhãn Gmail chuyển sang KHTHU-DA-PHAN-LOAI để không xử lý lại.",
-      "Mở HOAN_HUY và kiểm tra các cột TOM_TAT, NHOM_YEU_CAU, MUC_UU_TIEN, THONG_TIN_CON_THIEU, MAU_TRA_LOI, CAN_CON_NGUOI_DUYET và NGUOI_XU_LY. Hoàn tiền, hủy đơn, khiếu nại chất lượng, an toàn, quảng cáo sai hoặc đòi bồi thường phải luôn là CAN_CON_NGUOI_DUYET = CO.",
-      "Mở Gmail Thư nháp, đọc lại nội dung, đối chiếu đơn và chính sách rồi người thật mới bấm Gửi. Hệ thống không tự gửi thư trả lời. Sau khi xử lý, ghi ngày trả lời, trạng thái, mã lô và nguyên nhân gốc để dữ liệu hỗ trợ quay lại vận hành sản phẩm."
+      "ใน Gmail เปิด อีเมลสื่อลูกค้าที่ต้องการจัดการ คลิกสัญลักษณ์การสัญลักษณ์ และติด KHTHU-CHO-XU-LYสําหรับข้อความที่ระบบเองส่งมา; คอร์ดก็ต้องมีตัวอักษรอักษร [HE THONG]",
+      "ย้อนตารางและทํางาน 12 ช่อง ภาพการเก็บเถ้า AI สรุป, แบ่งกลุ่มความต้องการ, ความสําคัญ, ข้อมูลที่ขาด, แบบตอบและสัญลักษณ์ที่ต้องการผู้ค้นหา ผลการบันทึกHOAN_HUY; แปลว่า Gmail เปลี่ยนเป็น KHTHU-DA-PHAN-LOAI เพื่อไม่ถูกรีวิเคราะห์",
+      "เปิด HOAN_HUY และตรวจสอบสตับอักษร TOM_TAT, NHOM_YEU_CAU, MUC_UU_TIEN, THONG_TIN_CON_THIEU, MAU_TRA_LOI, CAN_CON_NGUOI_DUYET และ NGUOI_XU_LY การชําระเงิน, การยกเลิกการร้องเรียน, การร้องเรียนคุณภาพ, ความปลอดภัย, การประกาศผิดพลาดหรือการขอชําระเงินต้องเป็น CAN_CON_NGUOI_DUYET = CO",
+      "เปิด Gmail ส่งอีเมล อ่านเนื้อหา และดูรายการและนโยบาย แล้วคุณก็คลิ๊กป์ส่งสาเหตุพื้นฐานของข้อมูลที่สนับสนุนการดําเนินงานของสินค้า"
     ],
-    callout:{title:"Ranh giới không tự động hóa",text:"AI chỉ phân loại và soạn bản nháp. Thiệt hại, khách bức xúc, sản phẩm lỗi hàng loạt, tranh chấp thanh toán, hoàn tiền ngoại lệ và yêu cầu vượt chính sách bắt buộc do người kinh doanh duyệt."},
+    callout:{title:"ขอบเขตไม่อัตโนมัติ",text:"AI ประเภทและการประกอบแบบประกอบแบบประกอบด้วย ความเสียหาย การท้าทายลูกค้า การผลิตภัณฑ์ที่ผิดปกติต่อเนื่อง การขัดขวางการชําระเงิน การคืนเงินยกเว้น และการขัดขวางนโยบายที่ต้องกระทําโดยผู้ขัดขวางการบริหารงาน"},
     detailImages:[["m5-21.jpg","m5-22.jpg"],["m5-23.jpg"],[],["m5-24.jpg"]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-07.mp4"
   },
   {
-    id:"m5-buoc-09", n:"09", title:"Cảnh báo tồn kho và quyết định thời điểm đặt lô tiếp theo",
+    id:"m5-buoc-09", n:"09", title:"เตือนสินค้าและกําหนดเวลาวางสินค้าต่อไป",
     details:[
-      "Kiểm tra TON_KHO đã có CO_THE_BAN, BAN_TB_NGAY, thời gian sản xuất và TON_AN_TOAN. Hệ thống tách hàng có thể bán, đang sản xuất, chờ kiểm, hàng lỗi, đang giao và hàng hoàn chưa kiểm; không dùng một con số tồn tổng vì phần lớn hàng có thể chưa sẵn sàng bán.",
-      "Chạy 11. Canh bao ton kho. Mã tính SO_NGAY_DU_HANG = CO_THE_BAN / BAN_TB_NGAY, DIEM_DAT_LAI = BAN_TB_NGAY × THOI_GIAN_SAN_XUAT_NGAY + TON_AN_TOAN và TIEN_TRONG_TON. Khi tồn chạm ngưỡng, hệ thống ghi một dòng CANH_BAO và gửi email quản lý.",
-      "Trong ví dụ, tồn có thể bán là 17, điểm đặt lại là 57 và còn đủ khoảng 18,3 ngày. Thời gian sản xuất cũng là 18 ngày, nên đặt hôm nay chỉ vừa kịp khi kho gần hết và không còn biên an toàn. Con số thực tế do mã tính từ lượng bán trung bình, có thể khác ví dụ 184 trong phần lý thuyết.",
-      "Người kinh doanh tự quyết định đặt bao nhiêu, đặt của ai và khi nào dựa trên tiền mặt, kế hoạch quảng cáo và độ tin cậy của nhà cung cấp. Hệ thống dừng ở cảnh báo, không tự đặt hàng hoặc chuyển tiền. Xử lý xong, đổi DA_XU_LY thành CO để lần chạy sau không báo lại cùng một việc."
+      "TON_KHO ได้ตรวจสอบ CO_THE_BAN, BAN_TB_NGAY, เวลาผลิตและ TON_AN_TOAN ระบบแยกสินค้าสามารถขาย, ผลิต, ตรวจสอบ, มีความผิดพลาด, ส่งและเสร็จสิ้น\nเช็ค; อย่าใช้ประวัติทั้งหมด เพราะสินค้าส่วนใหญ่อาจยังไม่พร้อมขาย",
+      "รถ 11 ตันเก็บของรหัสรหัส SO_NGAY_DU_HANG = CO_THE_BAN / BAN_TB_NGAY, DIEM_DAT_LAI = BAN_TB_NGAY × THOI_GIAN_SAN_XUAT_NGAY + TON_AN_TOAN และ TIEN_TRONG_TONสาย CANH_BAO และส่งอีเมลให้ผู้บริหาร",
+      "ตัวอย่างเช่น ขายได้ 17 วัน และการเก็บได้ 57 วัน และใช้เวลา 18.3 วัน และการผลิตได้ 18 วัน ดังนั้นการเก็บได้ในวันนี้ก็แค่หมดแล้ว และไม่มีประกันภัยตัวเลขจริงที่คัดเลขมาจากจํานวนขายเฉลี่ย อาจแตกต่างกันได้ เช่น 184 ในส่วนทฤษฎี",
+      "ผู้ประกอบการตัดสินใจเองว่าจะสั่งซื้อจํานวนเท่าไหร่ ใครสั่งซื้อเมื่อไหร่ โดยขึ้นอยู่กับเงินสด แผนการโฆษณา และความน่าเชื่อถือของผู้ให้บริการ ระบบหยุดในเตือน ไม่สั่งซื้อเอง หรือโอนเงิน"
     ],
-    callout:{title:"Ý nghĩa của bước",text:"Cảnh báo tồn giúp ra quyết định trước khi hết hàng; nó không thay thế kế hoạch vốn hoặc quyền phê duyệt đơn đặt hàng của người kinh doanh."},
+    callout:{title:"ความหมายของขั้นตอน",text:"การแจ้งเตือนอยู่ช่วยให้เกิดการตัดสินใจก่อนเสร็จการจัดซื้อขาย; มันไม่ได้แทนแผนการเงินทุนหรือสิทธิการอนุมัติคําสั่งของนักธุรกิจ"},
     detailImages:[[],["m5-25.jpg"],[],[]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-08.mp4"
   },
   {
-    id:"m5-buoc-10", n:"10", title:"Tính lợi nhuận, đối soát tiền về và tổng hợp hủy hoàn",
+    id:"m5-buoc-10", n:"10", title:"การกําไร การเงินกลับคืน และการรวมการกําไร",
     details:[
-      "Mở LOI_NHUAN_DON và điền SO_DU_KIEN cho giá bán, giá vốn nhập kho, bao bì, kho–đóng gói, vận chuyển, phí nền tảng, phí thanh toán, hỗ trợ vận chuyển, dự phòng hoàn hủy, quảng cáo và chi phí khác. Với số minh họa trong sách, tổng chi phí biến đổi là 381.000 đồng và còn lại 118.000 đồng trước thuế và chi phí cố định. SO_DU_KIEN dùng để quyết định trước khi bắt đầu; SO_THUC_TE chỉ cập nhật từ đơn đã giao sau khi số đã đối soát.",
-      "Tải CSV đối soát từ kênh bán, đặt tên có chữ DOI_SOAT và đưa vào NAP_DON. Chạy 14. Doi soat ky. Hệ thống ghi DOI_SOAT và tính CHENH_LECH bằng doanh thu ghi nhận trừ phí nền tảng, trừ phí thanh toán, cộng hỗ trợ vận chuyển rồi trừ tiền thực nhận. Bằng 0 là khớp; khác 0 phải ghi chú và yêu cầu chứng từ theo đúng mã đơn.",
-      "Trong bộ thử, 8 dòng khớp và DH-0011 lệch 18.000 đồng. Ghi rõ Lech 18000, dang cho san giai trinh, rồi khiếu nại kênh bán. Chưa khóa kỳ và chưa dùng số này cập nhật SO_THUC_TE khi chưa biết nguyên nhân, vì phí khuyến mại, phí vận chuyển theo cân nặng hoặc lỗi hệ thống đều có thể tạo chênh lệch.",
-      "Để hoàn tất vòng vận hành, điền MA_LO và NGUYEN_NHAN_GOC cho mọi dòng HOAN_HUY. Chạy 13. Tong hop huy hoan vào cuối tuần; hàm đếm bảy ngày theo nguyên nhân và mã lô, ghi CANH_BAO và gửi thư khi một nguyên nhân vượt 30% hoặc một lô cao gấp hai lần mức trung bình. Không chạy khi còn nguyên nhân gốc trống, vì dòng trống sẽ bị gom vào KHAC và làm mất ý nghĩa phân tích.",
-      "Khi cảnh báo chạm ngưỡng, dừng nội dung quảng cáo đang chạy, xem mẫu thật, kiểm tra lô, bao bì và dữ liệu giao hàng trước khi tăng bán. AI chuẩn bị phần tổng hợp; người kinh doanh vẫn quyết định sửa nội dung, từ chối lô, đổi đối tác, hoàn tiền hoặc tăng ngân sách."
+      "เปิด LOI_NHUAN_DON และสมัคร SO_DU_KIEN สําหรับราคาขาย ราคาทุนการนําเข้า สถานีบรรจุ ราคาบรรจุ ราคาบรรจุ ราคาบรรจุ ราคาขนส่ง ราคาพื้นฐาน ราคาชําระ ราคาการส่ง ราคาสนับสนุนการจัดเก็บ ราคาประกาศ และราคาอื่นๆ โดยมีจํานวนที่แสดงในหนังสือ ราคาแปลงทั้งหมด 381,000 บาท และเหลือ 118,000 บาท ก่อนภาษีและราคาคงที่ SO_DU_KIEN ใช้ในการตัดสินใจก่อนเริ่มต้น; SO_THUC_TE เพียงการอัพเดทจากใบสั่งส่งหลังจากที่จํานวนได้ถูกส่งการควบคุม",
+      "ดาวน์โหลด CSV จากช่องขาย ชื่อเป็น DOI_SOAT และใส่ใน NAP_DON ครับ รูป 14 ดอย soat ky ระบบบันทึก DOI_SOAT และคํานวณ CHENH_LECH ด้วยรายได้บันทึก ลบค่าธรรมเนียมราคา 0 เป็นค่าต่อรอง 0 ต้องบันทึกและขอหลักฐานตามหลักฐาน",
+      "ในชุดทดสอบ 8 เส้นของข้อและ DH-0011 หลีกเลี่ยงจาก 18,000 V. เขียน Lech 18000, งวนสําหรับหน้าอกสาวสาว, แล้วร้องเรียนต่อช่องทางการขาย.\nเหตุผลไม่ทราบ เพราะค่าธรรมเนียมการส่งเสริม ค่าค่าส่งที่คัดคัด หรือความล้มเหลวของระบบทั้งหมดสามารถสร้างความแตกต่างได้",
+      "เพื่อชําระการดําเนินการชําระเต็ม MA_LO และ NGUYEN_NHAN_GOC สําหรับทุกสาย HOAN_HUY ลงประจําวันที่ 13 สัปดาห์นี้ส่งข้อความเมื่อสาเหตุหนึ่งเกิน 30% หรือแบตสองเท่าของเฉลี่ย ไม่ทํางานเมื่อสาเหตุเดิมว่าง เพราะสาย ว่างจะสะสมไป KHAC และสูญเสียความหมายของการจัดประเภทอัตรา",
+      "เมื่อเตือนถึงขั้นต่ํา หยุดการลงประกาศที่กําลังดําเนินการดูตัวอย่างจริง ตรวจสอบพาร์ทชุด การบรรจุและข้อมูลการจัดส่ง ก่อนที่จะเพิ่มการขาย AI เตรียมส่วนรวม; ผู้ประกอบการยังตัดสินใจแก้ไขเนื้อหา, ยกเลิกพาร์ทชุด, แลกเปลี่ยนพันธมิตร, ยืนยันเงินคืน หรือเพิ่มงบประมาณ."
     ],
-    callout:{title:"Chu trình kiểm soát hằng tuần",text:"Đầu tuần xem đơn giao thành công, lợi nhuận và tồn kho; giữa tuần xem phản hồi, nội dung và tiến độ đối tác; cuối tuần xử lý ngoại lệ, tổng hợp hủy hoàn rồi đối chiếu doanh thu, phí và tiền thực nhận."},
+    callout:{title:"การตรวจสอบรายสัปดาห์",text:"ตอนแรกของสัปดาห์ดูการส่งสินค้าสําเร็จ ผลกําไรและอัตราการจัดเก็บ ช่วงกลางสัปดาห์ดูการตอบสนอง เนื้อหาและความก้าวหน้าของผู้ร่วมมือ ช่วงปลายสัปดาห์จัดการการยกเว้น ประกอบการยกเลิก แล้วประมาณรายได้ ค่าใช้จ่าย และเงินได้รับ"},
     detailImages:[["m5-26.jpg","m5-27.jpg"],["m5-28.jpg"],[],[],[]], calloutImages:[], defaultVideo:"/steps/videos/model5/part-09.mp4"
   }
 ];

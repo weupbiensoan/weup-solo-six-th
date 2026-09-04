@@ -6,17 +6,17 @@ function validPath(pathname: string) {
 }
 
 export async function POST(request: Request) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: "Chưa kết nối Vercel Blob." }, { status: 503 });
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: "ยังไม่ได้เชื่อมต่อ Vercel Blob" }, { status: 503 });
   const body = await request.json() as HandleUploadBody;
   if (body.type === "blob.generate-client-token" && !isAdminRequest(request)) {
-    return Response.json({ error: "Bạn không có quyền tải tệp." }, { status: 403 });
+    return Response.json({ error: "คุณไม่มีสิทธิในการโหลดไฟล์" }, { status: 403 });
   }
   try {
     const result = await handleUpload({
       request,
       body,
       onBeforeGenerateToken: async pathname => {
-        if (!validPath(pathname)) throw new Error("Đường dẫn tải tệp không hợp lệ.");
+        if (!validPath(pathname)) throw new Error("ทางบรรทุกไฟล์ไม่ถูกต้อง");
         const isImage = pathname.startsWith("guide-images/");
         return {
           allowedContentTypes: isImage ? ["image/jpeg", "image/png", "image/webp", "image/gif"] : ["video/mp4", "video/webm", "video/quicktime"],
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     });
     return Response.json(result);
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Không thể tạo phiên tải tệp." }, { status: 400 });
+    return Response.json({ error: error instanceof Error ? error.message : "ไม่สามารถสร้างการโหลดไฟล์ได้" }, { status: 400 });
   }
 }
 

@@ -1,0 +1,11 @@
+:root {
+  --sans: var(--font-noto-sans-thai), "Noto Sans Thai", Tahoma, "Segoe UI", Arial, sans-serif;
+}
+
+body,
+button,
+textarea,
+input,
+select {
+  font-family: var(--sans);
+}
