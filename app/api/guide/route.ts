@@ -4,7 +4,7 @@ function guideKey(request: Request) {
   const requested = new URL(request.url).searchParams.get("model");
   const model = requested === "2" || requested === "3" || requested === "4" || requested === "5" || requested === "6" ? requested : "1";
   if (model === "1") return "guide-content/model-1-guide-v2.json";
-  if (model === "2") return "guide-content/model-2-guide-v2.json";
+  if (model === "2") return "guide-content/model-2-guide-v3.json";
   return model === "5" ? "guide-content/model-5-guide-v2.json" : `guide-content/model-${model}-guide.json`;
 }
 
