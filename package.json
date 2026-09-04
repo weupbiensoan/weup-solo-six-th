@@ -1,5 +1,5 @@
 {
-  "name": "huong-dan-6-mo-hinh-kinh-doanh",
+  "name": "weup-solo-six",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.19.0",
@@ -42,5 +42,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "displayName": "Hướng dẫn 6 mô hình kinh doanh"
+  "displayName": "WEUP SoloSix"
 }

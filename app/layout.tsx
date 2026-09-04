@@ -16,18 +16,18 @@ const siteOrigin = process.env.VERCEL_PROJECT_PRODUCTION_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
-  title: "Hướng dẫn 6 mô hình kinh doanh",
-  description: "Cổng hướng dẫn chuyên nghiệp gồm câu lệnh, bộ mã và hình ảnh thao tác chi tiết cho 6 mô hình kinh doanh.",
+  title: "WEUP SoloSix | Hướng dẫn 6 mô hình kinh doanh",
+  description: "WEUP SoloSix — cổng hướng dẫn chuyên nghiệp gồm câu lệnh, bộ mã và hình ảnh thao tác chi tiết cho 6 mô hình kinh doanh.",
   openGraph: {
-    title: "Hướng dẫn 6 mô hình kinh doanh",
+    title: "WEUP SoloSix | Hướng dẫn 6 mô hình kinh doanh",
     description: "Câu lệnh · Mã nguồn · Thao tác · Hình ảnh",
-    images: [{ url: "/og.png", width: 1731, height: 909, alt: "Hướng dẫn 6 mô hình kinh doanh" }],
+    images: [{ url: "/og.png", width: 1731, height: 909, alt: "WEUP SoloSix — Hướng dẫn 6 mô hình kinh doanh" }],
     locale: "vi_VN",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hướng dẫn 6 mô hình kinh doanh",
+    title: "WEUP SoloSix | Hướng dẫn 6 mô hình kinh doanh",
     description: "Câu lệnh · Mã nguồn · Thao tác · Hình ảnh",
     images: ["/og.png"],
   },
