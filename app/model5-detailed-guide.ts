@@ -118,7 +118,7 @@ export const model5DetailedGuide: Model5DetailedGuideStep[] = [
       "ร่างเหล่านี้ใช้ตรวจระบบเท่านั้น ยังไม่เผยแพร่จนกว่าจะมีสินค้าตัวอย่างจริงและข้อมูลฉบับอนุมัติ",
     ],
     callout: { title: "ร่างใช้ตรวจเส้นทางข้อมูลเท่านั้น", text: "ข้อมูลและตัวอย่างสินค้าจริงคือแหล่งอ้างอิงสำหรับเนื้อหาที่เผยแพร่" },
-    detailImages: [images(25), images(26), images(27), images(28), images(29)], calloutImages: [], showVideo: false,
+    detailImages: [images(25, 26), images(27), images(28, 29), []], calloutImages: [], showVideo: false,
   },
   {
     id: "m5-11-tao-ban-yeu-cau-san-pham", n: "11",
@@ -130,7 +130,7 @@ export const model5DetailedGuide: Model5DetailedGuideStep[] = [
       "ตรวจครั้งสุดท้ายแล้วเปลี่ยนสถานะเป็น อนุมัติ หากแก้ข้อกำหนดภายหลังให้สร้างเวอร์ชันใหม่แทนการเขียนทับ",
     ],
     callout: { title: "อย่าให้ AI เดาข้อกำหนดการผลิต", text: "ส่งให้โรงงานได้เฉพาะฉบับที่ผู้ประกอบการตรวจและอนุมัติแล้ว" },
-    detailImages: [images(30), images(31), images(32), images(33), images(34)], calloutImages: [], showVideo: false,
+    detailImages: [images(30, 31), images(32), images(33), images(34)], calloutImages: [], showVideo: false,
   },
   {
     id: "m5-12-lap-ho-so-va-gui-bao-gia", n: "12",
@@ -142,7 +142,7 @@ export const model5DetailedGuide: Model5DetailedGuideStep[] = [
       "ตรวจ Gmail ว่าผู้รับ หัวเรื่อง SKU เวอร์ชัน และ PDF แนบถูกต้อง แล้วเปิด PDF ในโฟลเดอร์เอกสารซัพพลายเออร์เพื่อตรวจว่าเป็นข้อกำหนดฉบับอนุมัติ",
     ],
     callout: { title: "AI ไม่เลือกซัพพลายเออร์แทนคน", text: "การเลือกคู่ค้า จำนวน สัญญา กำหนดชำระ และแผนสำรองยังเป็นการตัดสินใจของผู้ประกอบการ" },
-    detailImages: [images(35), images(36), images(37), images(38), images(39)], calloutImages: [], showVideo: false,
+    detailImages: [images(35), images(36), images(37), images(38, 39)], calloutImages: [], showVideo: false,
   },
   {
     id: "m5-13-kiem-mau-va-khoa-chuan", n: "13",
@@ -213,7 +213,7 @@ export const model5DetailedGuide: Model5DetailedGuideStep[] = [
       "กรณีคืนเงิน ยกเลิก คุณภาพ ความปลอดภัย โฆษณาไม่ตรง หรือค่าชดเชย ต้องให้คนตัดสินใจเสมอ",
     ],
     callout: { title: "ขอบเขตที่ไม่ทำอัตโนมัติ", text: "AI ช่วยจัดประเภทและร่างคำตอบ แต่ความเสียหาย ข้อพิพาท ข้อยกเว้น และลูกค้าที่ไม่พอใจต้องให้ผู้ประกอบการตัดสินใจ" },
-    detailImages: [images(58), images(59), images(60), images(61), images(62), images(63)], calloutImages: [], showVideo: false,
+    detailImages: [images(58, 59), images(60, 61), images(62), images(63), []], calloutImages: [], showVideo: false,
   },
   {
     id: "m5-19-canh-bao-ton-kho", n: "19",
@@ -246,7 +246,7 @@ export const model5DetailedGuide: Model5DetailedGuideStep[] = [
       "หากข้อมูลทดสอบ DH-0011 มีผลต่าง ให้บันทึกยอดตามที่แสดงในตาราง ระบุว่ารอแพลตฟอร์มอธิบาย และขอหลักฐานตามรหัสคำสั่งซื้อ ห้ามปิดรอบหรืออัปเดตกำไรจริงก่อนแก้เสร็จ",
     ],
     callout: { title: "ผลต่างแม้เพียงเล็กน้อยก็ต้องมีหลักฐาน", text: "หากละเลยหนึ่งแถว ข้อมูลกำไรในขั้นต่อไปจะไม่น่าเชื่อถือ" },
-    detailImages: [images(68), images(69), images(70), images(71), images(72), images(73)], calloutImages: [], showVideo: false,
+    detailImages: [images(68), images(69, 70, 71), images(72), images(73)], calloutImages: [], showVideo: false,
   },
   {
     id: "m5-22-tong-hop-huy-hoan-theo-lo", n: "22",

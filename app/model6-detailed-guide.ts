@@ -161,7 +161,7 @@ export const model6DetailedGuide: Model6DetailedGuideStep[] = [
       "ผู้ประกอบการเป็นผู้กดส่งใน Gmail จากนั้นเลือกแถวลูกค้าที่ถูกต้องและเรียก 6. ทำเครื่องหมายว่าส่งแล้ว เพื่อลงสถานะและวันที่ส่ง",
     ],
     callout: { title: "ร่างอีเมลคือจุดตรวจบังคับ", text: "AI ห้ามส่งอีเมล รับรองผลลัพธ์ หรือเลือกสินค้าแทนผู้ประกอบการ เนื้อหาที่ออกนอกระบบต้องผ่านการอ่านครั้งสุดท้าย" },
-    detailImages: [images(36), images(37), images(38), images(39), images(40)], calloutImages: [], showVideo: false,
+    detailImages: [images(36, 37), images(38), images(39), images(40)], calloutImages: [], showVideo: false,
   },
   {
     id: "m6-15-lay-mau-va-chuan-hoa-bao-cao", n: "15",
@@ -172,7 +172,7 @@ export const model6DetailedGuide: Model6DetailedGuideStep[] = [
       "แต่ละแถวต้องมีรหัสลูกค้า รหัสพันธมิตร รหัสธุรกรรม วันที่ สถานะ คอมมิชชันคาดการณ์ คอมมิชชันอนุมัติ เงินรับจริง วันที่คาดว่าจะรับ แหล่งรายงาน และหมายเหตุ",
     ],
     callout: { title: "ตัวเลขสามชุดมีความหมายต่างกัน", text: "ค่าคาดการณ์คือประมาณการ ค่าที่อนุมัติคือจำนวนที่พันธมิตรยอมรับ และเงินรับจริงเท่านั้นที่ถือว่าเข้าบัญชีแล้ว" },
-    detailImages: [images(41), images(42), images(43), images(44)], calloutImages: [], showVideo: false,
+    detailImages: [images(41, 42), images(43), images(44)], calloutImages: [], showVideo: false,
   },
   {
     id: "m6-16-nap-bao-cao-hoa-hong", n: "16",
