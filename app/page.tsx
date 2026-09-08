@@ -19,6 +19,19 @@ import { model6DetailedGuide } from "./model6-detailed-guide";
 type StepPreparation={manual:string[];automatic:string[]};
 type GuideStep = {id:string;n:string;title:string;details:string[];callout?:{title:string;text:string};detailImages:string[][];calloutImages:string[];defaultVideo?:string;showVideo?:boolean;preparation?:StepPreparation};
 
+// Keep tightly cropped Model 2 screenshots close to their source dimensions.
+// They remain responsive on narrow screens and can still be opened in the lightbox.
+const compactGuideImageWidths:Record<string,number>={
+  "m2-ch4-001.png":495,
+  "m2-ch4-010.png":455,
+  "m2-ch4-017.png":742,
+  "m2-ch4-019.png":616,
+  "m2-ch4-022.png":279,
+  "m2-ch4-042.png":666,
+  "m2-ch4-044.png":673,
+  "m2-ch4-053.png":780,
+};
+
 const defaultStepPreparation:Record<string,StepPreparation>={
   "buoc-chuan-bi":{manual:["มีบัญชี Google และ Google Sheets เปล้างเป็นไฟล์กลาง"],automatic:["หลังจากที่ตั้งรหัสแล้ว ระบบจะสร้างหน้าการเขียนและโครงสร้างที่ต้องการได้ในไฟล์นี้"]},
   "buoc-1":{manual:["โหลดทั้งหมด ไฟล์โค้ดสามไฟล์ของรหัสบนหน้า และเปิด Apps Script จากตรง Google Sheets กลาง"],automatic:["เมนูการทํางานจะปรากฏเมื่อโค้ดถูกติดตามชื่อแฟ้มถูกต้อง และตารางบอลถูกโหลดคืน"]},
@@ -261,7 +274,7 @@ function StepCard({step,index,total,isAdmin,onChange,onMove,onDelete}:{step:Guid
   const imageUrl=(name:string)=>`/api/images/${encodeURIComponent(name)}?v=${versions[name]||0}`;
   async function uploadImage(group:"detail"|"callout",detailIndex:number,imageIndex:number|null,e:ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];if(!file)return;const ext=(file.name.split(".").pop()||"jpg").replace(/[^a-z0-9]/gi,"").toLowerCase();const name=imageIndex===null?`custom-${step.id}-${Date.now()}.${ext}`:(group==="callout"?step.calloutImages[imageIndex]:step.detailImages[detailIndex][imageIndex]);setUploading(name);setNotice("");try{await uploadToBlob(`guide-images/${name}`,file,{access:"private",handleUploadUrl:"/api/blob-upload",contentType:file.type});if(imageIndex===null){if(group==="callout")onChange({...step,calloutImages:[...step.calloutImages,name]});else{const groups=step.detailImages.map(g=>[...g]);groups[detailIndex]=[...(groups[detailIndex]||[]),name];onChange({...step,detailImages:groups})}}setVersions(v=>({...v,[name]:Date.now()}));setNotice("ปรับปรุงรูป คลิก Save และ Update เพื่อให้ลูกค้าเห็นรูปแบบใหม่")}catch(error){setNotice(error instanceof Error?error.message:"ไม่สามารถบรรทุกได้")}finally{setUploading(null);e.target.value=""}}
   function removeImage(group:"detail"|"callout",detailIndex:number,imageIndex:number){if(group==="callout")onChange({...step,calloutImages:step.calloutImages.filter((_,i)=>i!==imageIndex)});else{const groups=step.detailImages.map(g=>[...g]);groups[detailIndex]=(groups[detailIndex]||[]).filter((_,i)=>i!==imageIndex);onChange({...step,detailImages:groups})}}
-  function images(group:"detail"|"callout",detailIndex:number,list:string[],label:string){return <div className="paired-images">{list.map((img,i)=><div className="image-card" key={img}><button className="image-open" onClick={()=>setPhoto(imageUrl(img))}><img src={imageUrl(img)} alt={`${label} – ภาพ ${i+1}`} width={1600} height={900} loading={index<2?"eager":"lazy"}/><span>ภาพประกอบ {i+1} · คลิกเพื่อดูใหญ่</span></button>{isAdmin&&<div className="image-admin-actions"><button className="annotate-image" onClick={()=>setAnnotationTarget(img)}>▣ ทำกรอบสีแดง</button><label className="replace-image">{uploading===img?"กำลังอัปโหลด…":"↻ เปลี่ยนภาพ"}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={uploading===img} onChange={e=>uploadImage(group,detailIndex,i,e)}/></label><button onClick={()=>removeImage(group,detailIndex,i)}>นำภาพออก</button></div>}</div>)}{isAdmin&&<label className="add-image">＋ เพิ่มภาพสำหรับเนื้อหานี้<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={e=>uploadImage(group,detailIndex,null,e)}/></label>}</div>}
+  function images(group:"detail"|"callout",detailIndex:number,list:string[],label:string){return <div className="paired-images">{list.map((img,i)=>{const displayWidth=compactGuideImageWidths[img];return <div className="image-card" style={displayWidth?{width:displayWidth}:undefined} key={img}><button className="image-open" onClick={()=>setPhoto(imageUrl(img))}><img src={imageUrl(img)} alt={`${label} – ภาพ ${i+1}`} loading={index<2?"eager":"lazy"}/><span>ภาพประกอบ {i+1} · คลิกเพื่อดูใหญ่</span></button>{isAdmin&&<div className="image-admin-actions"><button className="annotate-image" onClick={()=>setAnnotationTarget(img)}>▣ ทำกรอบสีแดง</button><label className="replace-image">{uploading===img?"กำลังอัปโหลด…":"↻ เปลี่ยนภาพ"}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={uploading===img} onChange={e=>uploadImage(group,detailIndex,i,e)}/></label><button onClick={()=>removeImage(group,detailIndex,i)}>นำภาพออก</button></div>}</div>})}{isAdmin&&<label className="add-image">＋ เพิ่มภาพสำหรับเนื้อหานี้<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={e=>uploadImage(group,detailIndex,null,e)}/></label>}</div>}
   function updateDetail(i:number,value:string){const details=[...step.details];details[i]=value;onChange({...step,details})}
   function addDetail(){onChange({...step,details:[...step.details,"กรอกเนื้อหาขั้นตอนใหม่"],detailImages:[...step.detailImages,[]]})}
   function deleteDetail(i:number){if(!confirm("ลบคำแนะนำข้อนี้หรือไม่?"))return;onChange({...step,details:step.details.filter((_,x)=>x!==i),detailImages:step.detailImages.filter((_,x)=>x!==i)})}
