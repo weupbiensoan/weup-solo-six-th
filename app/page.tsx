@@ -6,7 +6,7 @@ import { upload as uploadToBlob } from "@vercel/blob/client";
 import { promptText } from "./knowledge";
 import { promptText2 } from "./knowledge2";
 import { promptText3 } from "./knowledge3";
-import { promptText4 } from "./knowledge4";
+import { promptText4 } from "./prompt4";
 import { promptText5 } from "./knowledge5";
 import { promptText6 } from "./knowledge6";
 import { model1DetailedGuide } from "./model1-detailed-guide";
