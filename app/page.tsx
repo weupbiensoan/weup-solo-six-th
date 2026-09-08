@@ -8,7 +8,7 @@ import { promptText2 } from "./knowledge2";
 import { promptText3 } from "./knowledge3";
 import { promptText4 } from "./prompt4";
 import { promptText5 } from "./prompt5";
-import { promptText6 } from "./knowledge6";
+import { promptText6 } from "./prompt6";
 import { model1DetailedGuide } from "./model1-detailed-guide";
 import { model2DetailedGuide } from "./model2-detailed-guide";
 import { model3DetailedGuide } from "./model3-detailed-guide";
@@ -127,9 +127,9 @@ const codeFiles5=[
   {n:"โค้ด 02",title:"ผจญจาน",where:"สร้างไฟล์ HTML ชื่อ state_dieu_khien ไม่ติดตาม .html",path:"/files/model5/bang_dieu_khien.html",download:"bang_dieu_khien.html"},
 ];
 const codeFiles6=[
-  {n:"โค้ด 01",title:"การจัดทําเมนู และงานทั้งหมด",where:"ในไฟล์ Code.gs ที่มี ลบรหัสตัวอย่าง แล้วติดรหัส Ma.gs ทั้งหมด",path:"/files/model6/Ma.gs",download:"Ma.gs"},
-  {n:"โค้ด 02",title:"คอร์ดควบคุม",where:"กรอกไฟล์คําสั่งชื่อ BangDieu คลิปและปุ่มรหัส",path:"/files/model6/BangDieuKhien.gs",download:"BangDieuKhien.gs"},
-  {n:"โค้ด 03",title:"ผจญจาน",where:"สร้างไฟล์ HTML ชื่อที่เหมาะสม BangDieu ครับ ไม่ติดตาม .html",path:"/files/model6/BangDieuKhien.html",download:"BangDieuKhien.html"},
+  {n:"โค้ด 01",title:"ตรรกะหลัก เมนู และกระบวนการทั้งหมด",where:"ลบโค้ดตัวอย่างใน Code.gs แล้ววางโค้ดทั้งหมด จากนั้นตั้งชื่อไฟล์เป็น Main.gs",path:"/files/model6/Ma.gs",download:"Main.gs"},
+  {n:"โค้ด 02",title:"ฝั่งเซิร์ฟเวอร์ของแดชบอร์ด",where:"สร้างไฟล์สคริปต์ใหม่ชื่อ Dashboard.gs แล้ววางโค้ดส่วนนี้",path:"/files/model6/BangDieuKhien.gs",download:"Dashboard.gs"},
+  {n:"โค้ด 03",title:"ส่วนติดต่อผู้ใช้ของแดชบอร์ด",where:"สร้างไฟล์ HTML ใหม่ชื่อ Dashboard โดยไม่ต้องพิมพ์นามสกุล .html แล้ววางโค้ดส่วนนี้",path:"/files/model6/BangDieuKhien.html",download:"Dashboard.html"},
 ];
 
 const models=[
