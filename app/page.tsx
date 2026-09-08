@@ -7,7 +7,7 @@ import { promptText } from "./knowledge";
 import { promptText2 } from "./knowledge2";
 import { promptText3 } from "./knowledge3";
 import { promptText4 } from "./prompt4";
-import { promptText5 } from "./knowledge5";
+import { promptText5 } from "./prompt5";
 import { promptText6 } from "./knowledge6";
 import { model1DetailedGuide } from "./model1-detailed-guide";
 import { model2DetailedGuide } from "./model2-detailed-guide";
