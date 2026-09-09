@@ -25,10 +25,10 @@ var KNOWLEDGE = {
     testFormId: 'SOLOSIX_M3_TEST_FORM_ID'
   },
   sheets: {
-    config: 'CONFIG', research: 'RESEARCH', map: 'KNOWLEDGE_MAP', structure: 'PRODUCT_STRUCTURE',
-    documents: 'DOCUMENT_STATUS', scenes: 'SCENE_PLAN', orders: 'ORDERS', feedback: 'FEEDBACK',
-    testers: 'TEST_USERS', support: 'SUPPORT_MAIL', aiTests: 'AI_TESTS', releases: 'RELEASES', audit: 'AUDIT_LOG',
-    rawInterview: 'RAW_INTERVIEW', rawFeedback: 'RAW_FEEDBACK', rawTesters: 'RAW_TEST_USERS'
+    config: 'การตั้งค่า', research: 'วิจัย', map: 'แผนที่ความรู้', structure: 'โครงสร้างผลิตภัณฑ์',
+    documents: 'สถานะเอกสาร', scenes: 'แผนฉาก', orders: 'คำสั่งซื้อ', feedback: 'ฟีดแบ็ก',
+    testers: 'ผู้ใช้ทดลอง', support: 'อีเมลสนับสนุน', aiTests: 'ทดสอบ AI', releases: 'เวอร์ชัน', audit: 'บันทึกระบบ',
+    rawInterview: 'ข้อมูลดิบสัมภาษณ์', rawFeedback: 'ข้อมูลดิบฟีดแบ็ก', rawTesters: 'ข้อมูลดิบผู้ใช้ทดลอง'
   },
   status: {
     order: ['NEW', 'PAID', 'ACCESS_GRANTED', 'IN_PROGRESS', 'COMPLETED', 'STOPPED'],
@@ -40,7 +40,66 @@ var KNOWLEDGE = {
     yesNo: ['YES', 'NO'],
     correct: ['CORRECT', 'INCORRECT']
   },
-  folders: ['00_INTERNAL_EXPERIENCE', '01_CUSTOMER_DATA', '02_APPROVED_SOURCES', '03_AI_DRAFTS', '04_PENDING_REVIEW', '05_PUBLISHED']
+  folders: [
+    { key: '00_INTERNAL_EXPERIENCE', name: '00_ประสบการณ์ภายใน' },
+    { key: '01_CUSTOMER_DATA', name: '01_ข้อมูลลูกค้า' },
+    { key: '02_APPROVED_SOURCES', name: '02_แหล่งทางการ' },
+    { key: '03_AI_DRAFTS', name: '03_ข้อเสนอจาก AI' },
+    { key: '04_PENDING_REVIEW', name: '04_รอตรวจ' },
+    { key: '05_PUBLISHED', name: '05_ฉบับเผยแพร่' }
+  ]
+};
+
+/*
+ * ชื่อด้านซ้ายเป็นรหัสภายในที่โค้ดและ AI ใช้ ส่วนชื่อด้านขวาคือข้อความที่ผู้ใช้เห็น
+ * วิธีนี้ทำให้ส่วนติดต่อเป็นภาษาไทยโดยไม่ลดความเสถียรของโครงสร้างข้อมูล
+ */
+var KNOWLEDGE_SHEET_LABELS = {
+  CONFIG: 'การตั้งค่า', RESEARCH: 'วิจัย', KNOWLEDGE_MAP: 'แผนที่ความรู้', PRODUCT_STRUCTURE: 'โครงสร้างผลิตภัณฑ์',
+  DOCUMENT_STATUS: 'สถานะเอกสาร', SCENE_PLAN: 'แผนฉาก', ORDERS: 'คำสั่งซื้อ', FEEDBACK: 'ฟีดแบ็ก',
+  TEST_USERS: 'ผู้ใช้ทดลอง', SUPPORT_MAIL: 'อีเมลสนับสนุน', AI_TESTS: 'ทดสอบ AI', RELEASES: 'เวอร์ชัน', AUDIT_LOG: 'บันทึกระบบ',
+  RAW_INTERVIEW: 'ข้อมูลดิบสัมภาษณ์', RAW_FEEDBACK: 'ข้อมูลดิบฟีดแบ็ก', RAW_TEST_USERS: 'ข้อมูลดิบผู้ใช้ทดลอง'
+};
+
+var KNOWLEDGE_FIELD_LABELS = {
+  KEY: 'คีย์', VALUE: 'ค่า', DESCRIPTION: 'คำอธิบาย',
+  DATA_SOURCE: 'แหล่งข้อมูล', CUSTOMER_QUOTE: 'คำพูดลูกค้า', PROBLEM: 'ปัญหา', CURRENT_WORKAROUND: 'วิธีแก้ปัจจุบัน',
+  CONSEQUENCE_COST: 'ผลกระทบและต้นทุน', PAID_BEFORE: 'เคยจ่ายเงิน', AI_GROUP: 'กลุ่มจาก AI', HUMAN_APPROVAL: 'การอนุมัติโดยผู้ขาย',
+  CONTACT_EMAIL: 'อีเมลติดต่อ', RECEIVED_AT: 'วันที่ได้รับ', RAW_JSON: 'JSON ดิบ',
+  NEED_GROUP: 'กลุ่มความต้องการ', MODULE_ID: 'รหัสโมดูล', MODULE: 'โมดูล', TOPIC: 'หัวข้อ', CORE_QUESTION: 'คำถามหลัก',
+  REQUIRED_KNOWLEDGE: 'ความรู้ที่จำเป็น', SOURCE: 'แหล่งอ้างอิง', SOURCE_STATUS: 'สถานะแหล่ง', SOURCE_REVIEWER: 'ผู้ตรวจแหล่ง', SOURCE_REVIEWED_AT: 'วันที่ตรวจแหล่ง',
+  NAME: 'ชื่อ', GOAL: 'เป้าหมาย', CUSTOMER_DELIVERABLE: 'ผลลัพธ์ที่ลูกค้าได้รับ', REQUIRED_ASSETS: 'เอกสารที่ต้องใช้', ORDER_INDEX: 'ลำดับ',
+  DOCUMENT_ID: 'รหัสเอกสาร', TYPE: 'ประเภท', STATUS: 'สถานะ', REVIEWER: 'ผู้ตรวจ', REVIEWED_AT: 'วันที่ตรวจ', VERSION: 'เวอร์ชัน', LINK: 'ลิงก์',
+  SCENE_ID: 'รหัสฉาก', SOURCE_DOCUMENT_ID: 'รหัสเอกสารต้นทาง', TIMECODE: 'ช่วงเวลา', NARRATION: 'บทบรรยาย', SCENE_TYPE: 'ประเภทฉาก',
+  TOOL: 'เครื่องมือ', REQUIRED_CONTENT: 'เนื้อหาที่ต้องแสดง', SCENE_PROMPT: 'พรอมต์สร้างฉาก', SOURCE_ASSET: 'ไฟล์ต้นทาง',
+  HUMAN_CHECKPOINT: 'จุดตรวจโดยมนุษย์', CAPCUT_NOTES: 'หมายเหตุ CapCut',
+  ORDER_ID: 'รหัสคำสั่งซื้อ', FULL_NAME: 'ชื่อ-นามสกุล', EMAIL: 'อีเมล', PRODUCT: 'ผลิตภัณฑ์', PRICE: 'ราคา (บาท)',
+  PAID_AT: 'วันที่ชำระเงิน', ACCESS_GRANTED_AT: 'วันที่ให้สิทธิ์', DOCUMENT_LINK: 'ลิงก์เอกสาร', MILESTONE_1_COMPLETE: 'เป้าหมายแรกสำเร็จ',
+  REMINDER_DAY_3: 'วันที่ส่งเตือนวันที่ 3', REMINDER_DAY_7: 'วันที่ส่งเตือนวันที่ 7', COMPLETED_AT: 'วันที่เรียนจบ',
+  SYSTEM_NOTES: 'หมายเหตุระบบ', WELCOME_SENT_AT: 'วันที่ส่งอีเมลต้อนรับ', SENT_AT: 'วันที่ส่ง', ORIGINAL_TEXT: 'ข้อความต้นฉบับ',
+  RELATED_DOCUMENT: 'เอกสารที่เกี่ยวข้อง', NEEDS_HUMAN: 'ต้องให้คนจัดการ', DECISION: 'การตัดสินใจ', TARGET_VERSION: 'เวอร์ชันเป้าหมาย',
+  QUOTE_CONSENT: 'ยินยอมให้อ้างอิง', START_STEP: 'ขั้นตอนเริ่มต้น', COMPLETION_TIME: 'เวลาที่ใช้จนเสร็จ', QUESTIONS: 'คำถามที่เกิดขึ้น',
+  DOCUMENTS_OPENED: 'เอกสารที่เปิด', STOP_POINT: 'จุดที่ติดขัด', UNDERSTANDING: 'ความเข้าใจ', OUTPUT_CREATED: 'ผลลัพธ์ที่สร้างได้',
+  NEEDS_MORE_EXPLANATION: 'ส่วนที่ต้องอธิบายเพิ่ม', MAIL_ID: 'รหัสอีเมล', SENDER_EMAIL: 'อีเมลผู้ส่ง', SUBJECT: 'หัวข้ออีเมล',
+  EXCERPT: 'ข้อความย่อ', CLASSIFICATION_REASON: 'เหตุผลการจัดหมวดหมู่', SUGGESTED_ACTION: 'การดำเนินการที่แนะนำ',
+  RELATED_ORDER_ID: 'รหัสคำสั่งซื้อที่เกี่ยวข้อง', PROCESSED: 'ประมวลผลแล้ว', DATE: 'วันที่', QUESTION: 'คำถาม', ANSWER: 'คำตอบ',
+  SOURCE_DOCUMENT: 'เอกสารอ้างอิง', CORRECT: 'ผลตรวจ', RELEASE_DATE: 'วันที่เผยแพร่', CHANGELOG: 'รายการเปลี่ยนแปลง',
+  SOURCES_USED: 'แหล่งที่ใช้', UPDATED_ASSETS: 'ทรัพยากรที่อัปเดต', TIME: 'เวลา', STEP: 'ขั้นตอน', RESULT: 'ผลลัพธ์', DETAILS: 'รายละเอียด',
+  FORM_ID: 'รหัสแบบฟอร์ม', RAW_RESPONSE: 'คำตอบดิบ'
+};
+
+var KNOWLEDGE_STATUS_LABELS = {
+  NEW: 'ใหม่', PAID: 'ชำระแล้ว', ACCESS_GRANTED: 'ให้สิทธิ์แล้ว', IN_PROGRESS: 'กำลังเรียน', COMPLETED: 'เรียนจบแล้ว', STOPPED: 'หยุด',
+  AI_DRAFT: 'ร่างจาก AI', EXPERT_REVIEW: 'รอตรวจโดยผู้เชี่ยวชาญ', EDITORIAL_REVIEW: 'รอตรวจภาษา', APPROVED_TO_PUBLISH: 'อนุมัติให้เผยแพร่',
+  NEEDS_MORE_INFO: 'ต้องการข้อมูลเพิ่ม', APPROVED: 'อนุมัติแล้ว', REJECTED: 'ไม่อนุมัติ', IN_SCOPE: 'อยู่ในขอบเขต', OUT_OF_SCOPE: 'นอกขอบเขต', COMPLAINT: 'ข้อร้องเรียน',
+  ANSWER_EXISTS_HARD_TO_FIND: 'มีคำตอบแต่หาไม่พบ', UNCLEAR_GUIDANCE: 'คำแนะนำไม่ชัดเจน', FUTURE_RELEASE: 'พิจารณาเวอร์ชันถัดไป',
+  REAL_SCREEN: 'หน้าจอจริง', INSTRUCTOR: 'ผู้สอน', VEO_SCENE: 'ฉาก VEO', SEEDANCE_SCENE: 'ฉาก SEEDANCE',
+  YES: 'ใช่', NO: 'ไม่ใช่', CORRECT: 'ถูกต้อง', INCORRECT: 'ไม่ถูกต้อง'
+};
+
+var KNOWLEDGE_STATUS_FIELDS = {
+  STATUS: true, SOURCE_STATUS: true, AI_GROUP: true, PROCESSED: true, NEEDS_HUMAN: true, HUMAN_APPROVAL: true,
+  SCENE_TYPE: true, CORRECT: true, MILESTONE_1_COMPLETE: true
 };
 
 var KNOWLEDGE_HEADERS = {
@@ -145,10 +204,12 @@ function createKnowledgeSheets_(showMessage) {
   PropertiesService.getScriptProperties().setProperty(KNOWLEDGE.property.spreadsheetId, ss.getId());
   ss.setSpreadsheetTimeZone(KNOWLEDGE.timeZone);
   try { ss.setSpreadsheetLocale(KNOWLEDGE.locale); } catch (ignoreLocale) {}
-  Object.keys(KNOWLEDGE_HEADERS).forEach(function (name) { knowledgeEnsureSheet_(name, KNOWLEDGE_HEADERS[name]); });
-  knowledgeEnsureSheet_(KNOWLEDGE.sheets.rawInterview, ['RECEIVED_AT', 'FORM_ID', 'RAW_RESPONSE']);
-  knowledgeEnsureSheet_(KNOWLEDGE.sheets.rawFeedback, ['RECEIVED_AT', 'FORM_ID', 'RAW_RESPONSE']);
-  knowledgeEnsureSheet_(KNOWLEDGE.sheets.rawTesters, ['RECEIVED_AT', 'FORM_ID', 'RAW_RESPONSE']);
+  Object.keys(KNOWLEDGE_HEADERS).forEach(function (canonicalName) {
+    knowledgeEnsureSheet_(KNOWLEDGE_SHEET_LABELS[canonicalName], KNOWLEDGE_HEADERS[canonicalName], canonicalName);
+  });
+  knowledgeEnsureSheet_(KNOWLEDGE.sheets.rawInterview, ['RECEIVED_AT', 'FORM_ID', 'RAW_RESPONSE'], 'RAW_INTERVIEW');
+  knowledgeEnsureSheet_(KNOWLEDGE.sheets.rawFeedback, ['RECEIVED_AT', 'FORM_ID', 'RAW_RESPONSE'], 'RAW_FEEDBACK');
+  knowledgeEnsureSheet_(KNOWLEDGE.sheets.rawTesters, ['RECEIVED_AT', 'FORM_ID', 'RAW_RESPONSE'], 'RAW_TEST_USERS');
   knowledgeSeedConfig_();
   knowledgeApplyValidations_();
   knowledgeAudit_('CREATE_SHEETS', 'SUCCESS', 'ตรวจสอบ 13 ชีตระบบและ 3 ชีตข้อมูลดิบแล้ว');
@@ -167,16 +228,19 @@ function createKnowledgeDrive_(showMessage) {
   var root = null;
   if (rootId) { try { root = DriveApp.getFolderById(rootId); } catch (ignoreMissingRoot) {} }
   if (!root) {
-    root = DriveApp.createFolder('SOLOSIX_M3_' + knowledgeSpreadsheet_().getName());
+    root = DriveApp.createFolder('WEUP_ผลิตภัณฑ์ความรู้_' + knowledgeSpreadsheet_().getName());
     props.setProperty(KNOWLEDGE.property.rootFolderId, root.getId());
     knowledgeSetConfig_('ROOT_FOLDER_ID', root.getId(), 'รหัสโฟลเดอร์หลัก สร้างโดยระบบ');
   }
+  if (root.getName().indexOf('SOLOSIX_M3_') === 0) {
+    root.setName('WEUP_ผลิตภัณฑ์ความรู้_' + knowledgeSpreadsheet_().getName());
+  }
   var links = [];
-  KNOWLEDGE.folders.forEach(function (name) {
-    var folder = knowledgeGetOrCreateFolder_(root, name);
-    knowledgeSetConfig_(name + '_FOLDER_ID', folder.getId(), 'รหัสโฟลเดอร์ ' + name);
-    if (name === '05_PUBLISHED') knowledgeSetConfig_('PUBLISHED_FOLDER_ID', folder.getId(), 'รหัสโฟลเดอร์สำหรับส่งมอบ');
-    links.push(name + ': ' + folder.getUrl());
+  KNOWLEDGE.folders.forEach(function (definition) {
+    var folder = knowledgeGetOrCreateLocalizedFolder_(root, definition);
+    knowledgeSetConfig_(definition.key + '_FOLDER_ID', folder.getId(), 'รหัสโฟลเดอร์ ' + definition.name);
+    if (definition.key === '05_PUBLISHED') knowledgeSetConfig_('PUBLISHED_FOLDER_ID', folder.getId(), 'รหัสโฟลเดอร์สำหรับส่งมอบ');
+    links.push(definition.name + ': ' + folder.getUrl());
   });
   knowledgeAudit_('CREATE_DRIVE', 'SUCCESS', root.getUrl());
   if (showMessage) knowledgeNotify_('สร้างโครงสร้าง Drive แล้ว', 'โฟลเดอร์หลัก: ' + root.getUrl() + '\n\n' + links.join('\n'));
@@ -231,7 +295,7 @@ function createKnowledgeForms_(showMessage) {
   });
   installKnowledgeTriggers_();
   knowledgeAudit_('CREATE_FORMS', 'SUCCESS', 'ตรวจสอบแบบฟอร์ม 3 รายการแล้ว');
-  if (showMessage) knowledgeNotify_('สร้างแบบฟอร์มแล้ว', 'ลิงก์สำหรับผู้ตอบและผู้ดูแลอยู่ในชีต CONFIG');
+  if (showMessage) knowledgeNotify_('สร้างแบบฟอร์มแล้ว', 'ลิงก์สำหรับผู้ตอบและผู้ดูแลอยู่ในชีต “การตั้งค่า”');
 }
 
 function knowledgeOpenOrCreateForm_(def) {
@@ -315,7 +379,7 @@ function groupResearchNeeds() {
       processed++;
     });
     knowledgeAudit_('GROUP_RESEARCH', 'SUCCESS', 'ประมวลผล ' + processed + ' แถว');
-    knowledgeNotify_('จัดกลุ่มความต้องการแล้ว', 'ประมวลผล ' + processed + ' แถว กรุณาตรวจและกรอก HUMAN_APPROVAL ด้วยตนเอง');
+    knowledgeNotify_('จัดกลุ่มความต้องการแล้ว', 'ประมวลผล ' + processed + ' แถว กรุณาตรวจและกรอก “การอนุมัติโดยผู้ขาย” ด้วยตนเอง');
   } catch (error) { knowledgeFail_('จัดกลุ่มความต้องการไม่สำเร็จ', error); }
 }
 
@@ -328,10 +392,10 @@ function buildKnowledgeMap() {
     }).map(function (row) {
       return { group: knowledgeCell_(row, source.map, 'AI_GROUP'), problem: knowledgeCell_(row, source.map, 'PROBLEM'), quote: knowledgeRedact_(knowledgeCell_(row, source.map, 'CUSTOMER_QUOTE')) };
     });
-    if (!approved.length) throw new Error('ยังไม่มีแถว RESEARCH ที่ผู้รับผิดชอบกรอก HUMAN_APPROVAL');
+    if (!approved.length) throw new Error('ยังไม่มีแถวในชีต “วิจัย” ที่ผู้รับผิดชอบกรอก “การอนุมัติโดยผู้ขาย”');
     var raw = knowledgeCallOpenAI_('คุณออกแบบแผนที่ความรู้โดยไม่สร้างแหล่งอ้างอิงขึ้นเอง', knowledgePrompt_('PROMPT_KNOWLEDGE_MAP') + '\nข้อมูลที่อนุมัติแล้ว:\n' + JSON.stringify(approved));
     var data = knowledgeParseJson_(raw);
-    if (!data || !data.items) { knowledgeAppend_(KNOWLEDGE.sheets.map, { RAW_JSON: raw, SOURCE_STATUS: 'NEEDS_MORE_INFO' }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ใน RAW_JSON แล้ว'); }
+    if (!data || !data.items) { knowledgeAppend_(KNOWLEDGE.sheets.map, { RAW_JSON: raw, SOURCE_STATUS: 'NEEDS_MORE_INFO' }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ในคอลัมน์ “JSON ดิบ” แล้ว'); }
     var moduleIds = {};
     knowledgeArray_(data.items).forEach(function (item, index) {
       var moduleName = knowledgeText_(item.module) || 'โมดูล ' + (index + 1);
@@ -343,7 +407,7 @@ function buildKnowledgeMap() {
       });
     });
     knowledgeAudit_('BUILD_KNOWLEDGE_MAP', 'SUCCESS', 'สร้าง ' + knowledgeArray_(data.items).length + ' รายการ');
-    knowledgeNotify_('สร้างแผนที่ความรู้แล้ว', 'กรุณาเพิ่ม SOURCE และให้ผู้รับผิดชอบเปลี่ยน SOURCE_STATUS เป็น APPROVED');
+    knowledgeNotify_('สร้างแผนที่ความรู้แล้ว', 'กรุณาเพิ่ม “แหล่งอ้างอิง” และให้ผู้รับผิดชอบเปลี่ยน “สถานะแหล่ง” เป็น “อนุมัติแล้ว”');
   } catch (error) { knowledgeFail_('สร้างแผนที่ความรู้ไม่สำเร็จ', error); }
 }
 
@@ -354,10 +418,10 @@ function proposeProductStructure() {
     var approved = table.rows.filter(function (row) { return knowledgeCell_(row, table.map, 'SOURCE_STATUS') === 'APPROVED'; }).map(function (row) {
       return knowledgeRowObject_(table.headers, row);
     });
-    if (!approved.length) throw new Error('ยังไม่มีแหล่งข้อมูลที่ SOURCE_STATUS เป็น APPROVED');
+    if (!approved.length) throw new Error('ยังไม่มีแหล่งข้อมูลที่ “สถานะแหล่ง” เป็น “อนุมัติแล้ว”');
     var raw = knowledgeCallOpenAI_('คุณออกแบบผลิตภัณฑ์ความรู้เชิงปฏิบัติสำหรับตลาดไทย', knowledgePrompt_('PROMPT_PRODUCT_STRUCTURE') + '\nแผนที่ความรู้ที่อนุมัติ:\n' + JSON.stringify(approved));
     var data = knowledgeParseJson_(raw);
-    if (!data || !data.modules) { knowledgeAppend_(KNOWLEDGE.sheets.structure, { RAW_JSON: raw }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ใน RAW_JSON แล้ว'); }
+    if (!data || !data.modules) { knowledgeAppend_(KNOWLEDGE.sheets.structure, { RAW_JSON: raw }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ในคอลัมน์ “JSON ดิบ” แล้ว'); }
     knowledgeArray_(data.modules).forEach(function (item, index) {
       var moduleId = knowledgeText_(item.module_id) || 'MOD-' + knowledgePad_(index + 1, 2);
       knowledgeUpsert_(KNOWLEDGE.sheets.structure, 'MODULE_ID', moduleId, {
@@ -367,7 +431,7 @@ function proposeProductStructure() {
       });
     });
     knowledgeAudit_('PROPOSE_STRUCTURE', 'SUCCESS', 'สร้าง ' + knowledgeArray_(data.modules).length + ' โมดูล');
-    knowledgeNotify_('เสนอโครงสร้างผลิตภัณฑ์แล้ว', 'ตรวจผลลัพธ์ใน PRODUCT_STRUCTURE ก่อนสร้างร่างเอกสาร');
+    knowledgeNotify_('เสนอโครงสร้างผลิตภัณฑ์แล้ว', 'ตรวจผลลัพธ์ในชีต “โครงสร้างผลิตภัณฑ์” ก่อนสร้างร่างเอกสาร');
   } catch (error) { knowledgeFail_('เสนอโครงสร้างผลิตภัณฑ์ไม่สำเร็จ', error); }
 }
 
@@ -383,15 +447,15 @@ function createDocumentDrafts() {
 
 function createDocumentDraftsForModule_(moduleId) {
   var structure = knowledgeFind_(KNOWLEDGE.sheets.structure, 'MODULE_ID', moduleId);
-  if (!structure) throw new Error('ไม่พบ MODULE_ID: ' + moduleId);
+  if (!structure) throw new Error('ไม่พบรหัสโมดูล: ' + moduleId);
   var map = knowledgeRead_(KNOWLEDGE.sheets.map);
   var sources = map.rows.filter(function (row) {
     return knowledgeCell_(row, map.map, 'MODULE_ID') === moduleId && knowledgeCell_(row, map.map, 'SOURCE_STATUS') === 'APPROVED' && knowledgeCell_(row, map.map, 'SOURCE');
   }).map(function (row) { return knowledgeRowObject_(map.headers, row); });
-  if (!sources.length) throw new Error('โมดูลนี้ยังไม่มี SOURCE ที่ได้รับ APPROVED');
+  if (!sources.length) throw new Error('โมดูลนี้ยังไม่มีแหล่งอ้างอิงที่มีสถานะ “อนุมัติแล้ว”');
   var raw = knowledgeCallOpenAI_('คุณร่างเอกสารจากหลักฐานที่ผ่านการอนุมัติแล้วเท่านั้น', knowledgePrompt_('PROMPT_DOCUMENT_DRAFT') + '\nโครงสร้าง:\n' + JSON.stringify(structure.object) + '\nแหล่งข้อมูล:\n' + JSON.stringify(sources));
   var data = knowledgeParseJson_(raw);
-  if (!data || !data.documents) { knowledgeAppend_(KNOWLEDGE.sheets.documents, { MODULE_ID: moduleId, STATUS: 'AI_DRAFT', RAW_JSON: raw }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ใน RAW_JSON แล้ว'); }
+  if (!data || !data.documents) { knowledgeAppend_(KNOWLEDGE.sheets.documents, { MODULE_ID: moduleId, STATUS: 'AI_DRAFT', RAW_JSON: raw }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ในคอลัมน์ “JSON ดิบ” แล้ว'); }
   var limit = Math.max(1, Math.min(3, knowledgeNumberConfig_('DOCUMENTS_PER_RUN', 3)));
   var folder = DriveApp.getFolderById(knowledgeConfig_('03_AI_DRAFTS_FOLDER_ID', ''));
   var created = 0;
@@ -410,13 +474,13 @@ function createDocumentDraftsForModule_(moduleId) {
     created++;
   });
   knowledgeAudit_('CREATE_DOCUMENT_DRAFTS', 'SUCCESS', moduleId + ': ' + created + ' เอกสาร');
-  knowledgeNotify_('สร้างร่างเอกสารแล้ว', 'สร้าง ' + created + ' รายการใน 03_AI_DRAFTS ร่างทั้งหมดมีสถานะ AI_DRAFT และต้องผ่านการตรวจโดยมนุษย์');
+  knowledgeNotify_('สร้างร่างเอกสารแล้ว', 'สร้าง ' + created + ' รายการในโฟลเดอร์ “03_ข้อเสนอจาก AI” ร่างทั้งหมดมีสถานะ “ร่างจาก AI” และต้องผ่านการตรวจโดยมนุษย์');
 }
 
 function createScenePlans() {
   try {
     createKnowledgeSheets_(false);
-    var documentId = knowledgeAsk_('สร้างแผนฉาก', 'กรอก DOCUMENT_ID ที่มีสถานะ APPROVED_TO_PUBLISH');
+    var documentId = knowledgeAsk_('สร้างแผนฉาก', 'กรอกรหัสเอกสารที่มีสถานะ “อนุมัติให้เผยแพร่”');
     if (!documentId) return;
     createScenePlanForDocument_(documentId);
   } catch (error) { knowledgeFail_('สร้างแผนฉากไม่สำเร็จ', error); }
@@ -424,10 +488,10 @@ function createScenePlans() {
 
 function createScenePlanForDocument_(documentId) {
   var found = knowledgeFind_(KNOWLEDGE.sheets.documents, 'DOCUMENT_ID', documentId);
-  if (!found) throw new Error('ไม่พบ DOCUMENT_ID: ' + documentId);
+  if (!found) throw new Error('ไม่พบรหัสเอกสาร: ' + documentId);
   var item = found.object;
   if (item.STATUS !== 'APPROVED_TO_PUBLISH' || !item.REVIEWER || !item.REVIEWED_AT || !item.LINK) {
-    throw new Error('เอกสารต้องมี STATUS = APPROVED_TO_PUBLISH พร้อม REVIEWER, REVIEWED_AT และ LINK');
+    throw new Error('เอกสารต้องมีสถานะ “อนุมัติให้เผยแพร่” พร้อมผู้ตรวจ วันที่ตรวจ และลิงก์');
   }
   var googleId = knowledgeIdFromUrl_(item.LINK);
   if (!googleId) throw new Error('อ่านรหัส Google Docs จาก LINK ไม่ได้');
@@ -435,7 +499,7 @@ function createScenePlanForDocument_(documentId) {
   var content = DocumentApp.openById(googleId).getBody().getText().slice(0, maxChars);
   var raw = knowledgeCallOpenAI_('คุณวางแผนวิดีโอจากเอกสารที่มนุษย์อนุมัติแล้ว ห้ามทำภาพจำลองให้ดูเหมือนหลักฐานจริง', knowledgePrompt_('PROMPT_SCENE_PLAN') + '\nDOCUMENT_ID: ' + documentId + '\nเนื้อหา:\n' + content);
   var data = knowledgeParseJson_(raw);
-  if (!data || !data.scenes) { knowledgeAppend_(KNOWLEDGE.sheets.scenes, { SOURCE_DOCUMENT_ID: documentId, RAW_JSON: raw }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ใน RAW_JSON แล้ว'); }
+  if (!data || !data.scenes) { knowledgeAppend_(KNOWLEDGE.sheets.scenes, { SOURCE_DOCUMENT_ID: documentId, RAW_JSON: raw }); throw new Error('AI ส่ง JSON ไม่ถูกต้อง ระบบเก็บข้อความไว้ในคอลัมน์ “JSON ดิบ” แล้ว'); }
   knowledgeArray_(data.scenes).forEach(function (scene, index) {
     var sceneType = knowledgeAllowed_(knowledgeText_(scene.scene_type), KNOWLEDGE.status.scene, 'REAL_SCREEN');
     knowledgeAppend_(KNOWLEDGE.sheets.scenes, {
@@ -447,7 +511,7 @@ function createScenePlanForDocument_(documentId) {
     });
   });
   knowledgeAudit_('CREATE_SCENE_PLAN', 'SUCCESS', documentId + ': ' + knowledgeArray_(data.scenes).length + ' ฉาก');
-  knowledgeNotify_('สร้างแผนฉากแล้ว', 'ตรวจ SCENE_PLAN และตัดต่อขั้นสุดท้ายด้วยมนุษย์ใน CapCut');
+  knowledgeNotify_('สร้างแผนฉากแล้ว', 'ตรวจชีต “แผนฉาก” และตัดต่อขั้นสุดท้ายด้วยมนุษย์ใน CapCut');
 }
 
 function recordKnowledgeOrder() {
@@ -460,7 +524,7 @@ function recordKnowledgeOrder() {
     var product = knowledgeAsk_('บันทึกคำสั่งซื้อ', 'ชื่อผลิตภัณฑ์ (เว้นว่างเพื่อใช้ค่ามาตรฐาน)') || knowledgeConfig_('DEFAULT_PRODUCT_NAME', 'ชุดความรู้เชิงปฏิบัติ');
     var paid = knowledgeConfirm_('ยืนยันการชำระเงิน', 'ตรวจสอบยอดเงินจริงแล้วหรือไม่? เลือก “ใช่” เฉพาะเมื่อยืนยันแล้ว');
     var orderId = recordKnowledgeOrder_(fullName, email, product, paid);
-    knowledgeNotify_('บันทึกคำสั่งซื้อแล้ว', 'ORDER_ID: ' + orderId + (paid ? '\nสถานะ: PAID' : '\nสถานะ: NEW'));
+    knowledgeNotify_('บันทึกคำสั่งซื้อแล้ว', 'รหัสคำสั่งซื้อ: ' + orderId + (paid ? '\nสถานะ: ชำระแล้ว' : '\nสถานะ: ใหม่'));
   } catch (error) { knowledgeFail_('บันทึกคำสั่งซื้อไม่สำเร็จ', error); }
 }
 
@@ -480,12 +544,12 @@ function grantKnowledgeAccess() { knowledgeRunOrderPrompt_('ให้สิท�
 
 function grantKnowledgeAccess_(orderId) {
   var found = knowledgeFind_(KNOWLEDGE.sheets.orders, 'ORDER_ID', orderId);
-  if (!found) throw new Error('ไม่พบ ORDER_ID: ' + orderId);
+  if (!found) throw new Error('ไม่พบรหัสคำสั่งซื้อ: ' + orderId);
   var order = found.object;
-  if (order.STATUS !== 'PAID') throw new Error('ให้สิทธิ์ได้เฉพาะคำสั่งซื้อที่มี STATUS = PAID');
+  if (order.STATUS !== 'PAID') throw new Error('ให้สิทธิ์ได้เฉพาะคำสั่งซื้อที่มีสถานะ “ชำระแล้ว”');
   if (!knowledgeValidEmail_(order.EMAIL)) throw new Error('อีเมลไม่ถูกต้อง กรุณาแก้ไขก่อนให้สิทธิ์');
   var folderId = knowledgeConfig_('PUBLISHED_FOLDER_ID', '');
-  if (!folderId) throw new Error('ยังไม่มีโฟลเดอร์ 05_PUBLISHED กรุณาสร้างโครงสร้าง Drive ก่อน');
+  if (!folderId) throw new Error('ยังไม่มีโฟลเดอร์ “05_ฉบับเผยแพร่” กรุณาสร้างโครงสร้าง Drive ก่อน');
   var folder = DriveApp.getFolderById(folderId);
   folder.addViewer(order.EMAIL);
   knowledgeWrite_(found.table, found.rowNumber, { STATUS: 'ACCESS_GRANTED', ACCESS_GRANTED_AT: new Date(), DOCUMENT_LINK: folder.getUrl(), SYSTEM_NOTES: '' });
@@ -497,7 +561,7 @@ function sendKnowledgeWelcome() { knowledgeRunOrderPrompt_('ส่งอีเ�
 
 function sendKnowledgeWelcome_(orderId) {
   var found = knowledgeFind_(KNOWLEDGE.sheets.orders, 'ORDER_ID', orderId);
-  if (!found) throw new Error('ไม่พบ ORDER_ID: ' + orderId);
+  if (!found) throw new Error('ไม่พบรหัสคำสั่งซื้อ: ' + orderId);
   var order = found.object;
   if (order.STATUS !== 'ACCESS_GRANTED' && order.STATUS !== 'IN_PROGRESS') throw new Error('ต้องให้สิทธิ์ก่อนส่งอีเมลต้อนรับ');
   if (order.WELCOME_SENT_AT) return 'เคยส่งอีเมลต้อนรับแล้ว ระบบจึงไม่ส่งซ้ำ';
@@ -532,7 +596,7 @@ function knowledgeRunReminderBatch_(day) {
 
 function knowledgeSendReminder_(orderId, day) {
   var found = knowledgeFind_(KNOWLEDGE.sheets.orders, 'ORDER_ID', orderId);
-  if (!found) throw new Error('ไม่พบ ORDER_ID: ' + orderId);
+  if (!found) throw new Error('ไม่พบรหัสคำสั่งซื้อ: ' + orderId);
   var order = found.object;
   var field = day === 3 ? 'REMINDER_DAY_3' : 'REMINDER_DAY_7';
   if (order[field]) return 'เคยส่งข้อความเตือนแล้ว';
@@ -586,11 +650,11 @@ function markKnowledgeCompleted() { knowledgeRunOrderPrompt_('บันทึก
 
 function markKnowledgeCompleted_(orderIdOrEmail) {
   var found = knowledgeFind_(KNOWLEDGE.sheets.orders, 'ORDER_ID', orderIdOrEmail) || knowledgeFind_(KNOWLEDGE.sheets.orders, 'EMAIL', orderIdOrEmail);
-  if (!found) throw new Error('ไม่พบคำสั่งซื้อจาก ORDER_ID หรืออีเมลนี้');
-  if (['ACCESS_GRANTED', 'IN_PROGRESS'].indexOf(found.object.STATUS) < 0) throw new Error('บันทึกการเรียนจบได้เฉพาะสถานะ ACCESS_GRANTED หรือ IN_PROGRESS');
+  if (!found) throw new Error('ไม่พบคำสั่งซื้อจากรหัสคำสั่งซื้อหรืออีเมลนี้');
+  if (['ACCESS_GRANTED', 'IN_PROGRESS'].indexOf(found.object.STATUS) < 0) throw new Error('บันทึกการเรียนจบได้เฉพาะสถานะ “ให้สิทธิ์แล้ว” หรือ “กำลังเรียน”');
   knowledgeWrite_(found.table, found.rowNumber, { STATUS: 'COMPLETED', COMPLETED_AT: new Date(), MILESTONE_1_COMPLETE: 'YES' });
   knowledgeAudit_('MARK_COMPLETED', 'SUCCESS', found.object.ORDER_ID);
-  return 'บันทึก COMPLETED แล้ว กรุณาเชิญผู้เรียนกรอก FEEDBACK_FORM_URL';
+  return 'บันทึกสถานะ “เรียนจบแล้ว” กรุณาเชิญผู้เรียนกรอกแบบฟอร์มฟีดแบ็กจากลิงก์ในชีต “การตั้งค่า”';
 }
 
 function reviewKnowledgeFeedback() {
@@ -678,13 +742,31 @@ function knowledgeParseJson_(text) {
   return null;
 }
 
-function knowledgeEnsureSheet_(name, headers) {
+function knowledgeEnsureSheet_(name, headers, legacyName) {
   var ss = knowledgeSpreadsheet_();
-  var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+  var sheet = ss.getSheetByName(name);
+  if (!sheet && legacyName && legacyName !== name) {
+    var legacySheet = ss.getSheetByName(legacyName);
+    if (legacySheet) {
+      legacySheet.setName(name);
+      sheet = legacySheet;
+      knowledgeAudit_('LOCALIZE_SHEET', 'SUCCESS', legacyName + ' -> ' + name);
+    }
+  }
+  if (!sheet) sheet = ss.insertSheet(name);
   var lastColumn = sheet.getLastColumn();
   var existing = lastColumn ? sheet.getRange(1, 1, 1, lastColumn).getValues()[0].map(knowledgeText_) : [];
   headers.forEach(function (header) {
-    if (existing.indexOf(header) < 0) { existing.push(header); sheet.getRange(1, existing.length).setValue(header); }
+    var label = knowledgeHeaderLabel_(header);
+    var labelIndex = existing.indexOf(label);
+    var legacyIndex = existing.indexOf(header);
+    if (labelIndex < 0 && legacyIndex >= 0) {
+      sheet.getRange(1, legacyIndex + 1).setValue(label);
+      existing[legacyIndex] = label;
+    } else if (labelIndex < 0 && legacyIndex < 0) {
+      existing.push(label);
+      sheet.getRange(1, existing.length).setValue(label);
+    }
   });
   if (existing.length) {
     sheet.setFrozenRows(1);
@@ -712,29 +794,52 @@ function knowledgeApplyValidations_() {
   knowledgeValidation_(KNOWLEDGE.sheets.feedback, 'NEEDS_HUMAN', KNOWLEDGE.status.yesNo);
   knowledgeValidation_(KNOWLEDGE.sheets.scenes, 'SCENE_TYPE', KNOWLEDGE.status.scene);
   knowledgeValidation_(KNOWLEDGE.sheets.aiTests, 'CORRECT', KNOWLEDGE.status.correct);
+  knowledgeValidation_(KNOWLEDGE.sheets.research, 'HUMAN_APPROVAL', ['APPROVED', 'REJECTED']);
 }
 
 function knowledgeValidation_(sheetName, header, values) {
   var sheet = knowledgeSheet_(sheetName);
   var map = knowledgeHeaderMap_(sheet);
   if (map[header] === undefined) return;
-  var rule = SpreadsheetApp.newDataValidation().requireValueInList(values, true).setAllowInvalid(false).build();
-  sheet.getRange(2, map[header] + 1, Math.max(sheet.getMaxRows() - 1, 1), 1).setDataValidation(rule);
+  var displayValues = values.map(knowledgeStatusLabel_);
+  var rule = SpreadsheetApp.newDataValidation().requireValueInList(displayValues, true).setAllowInvalid(false).build();
+  var range = sheet.getRange(2, map[header] + 1, Math.max(sheet.getMaxRows() - 1, 1), 1);
+  var existing = range.getValues();
+  var allowed = {};
+  values.forEach(function (value) { allowed[value] = true; });
+  var changed = false;
+  existing.forEach(function (row) {
+    var current = knowledgeText_(row[0]);
+    if (!current) return;
+    var canonical = knowledgeCanonicalStatus_(current);
+    if (!allowed[canonical]) return;
+    var localized = knowledgeStatusLabel_(canonical);
+    if (current !== localized) { row[0] = localized; changed = true; }
+  });
+  if (changed) range.setValues(existing);
+  range.setDataValidation(rule);
 }
 
 function knowledgeRead_(sheetName) {
   var sheet = knowledgeSheet_(sheetName);
   var lastColumn = Math.max(sheet.getLastColumn(), 1);
-  var headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0].map(knowledgeText_);
+  var headers = knowledgeHeaders_(sheet);
   var lastRow = sheet.getLastRow();
   var rows = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues() : [];
+  headers.forEach(function (header, columnIndex) {
+    if (!KNOWLEDGE_STATUS_FIELDS[header]) return;
+    rows.forEach(function (row) { row[columnIndex] = knowledgeCanonicalStatus_(row[columnIndex]); });
+  });
   return { sheet: sheet, headers: headers, map: knowledgeMapHeaders_(headers), rows: rows };
 }
 
 function knowledgeAppend_(sheetName, values) {
   var sheet = knowledgeSheet_(sheetName);
   var headers = knowledgeHeaders_(sheet);
-  sheet.appendRow(headers.map(function (header) { return values[header] === undefined ? '' : values[header]; }));
+  sheet.appendRow(headers.map(function (header) {
+    if (values[header] === undefined) return '';
+    return knowledgeDisplayValue_(header, values[header]);
+  }));
   return sheet.getLastRow();
 }
 
@@ -743,7 +848,7 @@ function knowledgeWrite_(table, rowNumber, values) {
   Object.keys(values).forEach(function (header) {
     if (protectedColumns[header]) throw new Error('คอลัมน์ ' + header + ' ให้มนุษย์กรอกเท่านั้น');
     if (table.map[header] === undefined) throw new Error('ไม่พบคอลัมน์ ' + header);
-    table.sheet.getRange(rowNumber, table.map[header] + 1).setValue(values[header]);
+    table.sheet.getRange(rowNumber, table.map[header] + 1).setValue(knowledgeDisplayValue_(header, values[header]));
   });
 }
 
@@ -765,7 +870,7 @@ function knowledgeFind_(sheetName, keyHeader, keyValue) {
 }
 
 function knowledgeHeaders_(sheet) {
-  return sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(knowledgeText_);
+  return sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(knowledgeCanonicalHeader_);
 }
 
 function knowledgeHeaderMap_(sheet) { return knowledgeMapHeaders_(knowledgeHeaders_(sheet)); }
@@ -832,6 +937,18 @@ function knowledgeGetOrCreateFolder_(parent, name) {
   return folders.hasNext() ? folders.next() : parent.createFolder(name);
 }
 
+function knowledgeGetOrCreateLocalizedFolder_(parent, definition) {
+  var localized = parent.getFoldersByName(definition.name);
+  if (localized.hasNext()) return localized.next();
+  var legacy = parent.getFoldersByName(definition.key);
+  if (legacy.hasNext()) {
+    var existing = legacy.next();
+    existing.setName(definition.name);
+    return existing;
+  }
+  return parent.createFolder(definition.name);
+}
+
 function knowledgeMoveFile_(fileId, folder) {
   var file = DriveApp.getFileById(fileId);
   folder.addFile(file);
@@ -890,7 +1007,10 @@ function knowledgeFindOrderByEmail_(email) {
 
 function knowledgeInstallationGaps_() {
   var gaps = [];
-  Object.keys(KNOWLEDGE_HEADERS).forEach(function (name) { if (!knowledgeSpreadsheet_().getSheetByName(name)) gaps.push('ชีต ' + name); });
+  Object.keys(KNOWLEDGE_HEADERS).forEach(function (name) {
+    var label = KNOWLEDGE_SHEET_LABELS[name];
+    if (!knowledgeSpreadsheet_().getSheetByName(label)) gaps.push('ชีต ' + label);
+  });
   ['ROOT_FOLDER_ID', 'PUBLISHED_FOLDER_ID', 'INTERVIEW_FORM_URL', 'FEEDBACK_FORM_URL', 'TEST_USER_FORM_URL'].forEach(function (key) { if (!knowledgeConfig_(key, '')) gaps.push(key); });
   var hasTrigger = ScriptApp.getProjectTriggers().some(function (trigger) { return trigger.getHandlerFunction() === 'onKnowledgeFormSubmit'; });
   if (!hasTrigger) gaps.push('ทริกเกอร์แบบฟอร์ม');
@@ -936,12 +1056,46 @@ function knowledgeDaysBetween_(start, end) {
 }
 
 function knowledgeIsApproved_(value) {
-  return ['YES', 'APPROVED', 'อนุมัติ', 'ผ่าน'].indexOf(knowledgeText_(value).toUpperCase()) >= 0 || knowledgeText_(value) === 'อนุมัติ';
+  return ['YES', 'APPROVED'].indexOf(knowledgeCanonicalStatus_(value)) >= 0 || ['อนุมัติ', 'ผ่าน'].indexOf(knowledgeText_(value)) >= 0;
 }
 
 function knowledgeAllowed_(value, allowed, fallback) {
-  var normalized = knowledgeText_(value).toUpperCase();
+  var normalized = knowledgeCanonicalStatus_(value);
   return allowed.indexOf(normalized) >= 0 ? normalized : fallback;
+}
+
+function knowledgeHeaderLabel_(canonicalHeader) {
+  return KNOWLEDGE_FIELD_LABELS[canonicalHeader] || canonicalHeader;
+}
+
+function knowledgeCanonicalHeader_(visibleHeader) {
+  var text = knowledgeText_(visibleHeader);
+  if (KNOWLEDGE_FIELD_LABELS[text]) return text;
+  var keys = Object.keys(KNOWLEDGE_FIELD_LABELS);
+  for (var i = 0; i < keys.length; i++) {
+    if (KNOWLEDGE_FIELD_LABELS[keys[i]] === text) return keys[i];
+  }
+  return text;
+}
+
+function knowledgeStatusLabel_(canonicalStatus) {
+  var canonical = knowledgeCanonicalStatus_(canonicalStatus);
+  return KNOWLEDGE_STATUS_LABELS[canonical] || knowledgeText_(canonicalStatus);
+}
+
+function knowledgeCanonicalStatus_(visibleStatus) {
+  var text = knowledgeText_(visibleStatus);
+  var upper = text.toUpperCase();
+  if (KNOWLEDGE_STATUS_LABELS[upper]) return upper;
+  var keys = Object.keys(KNOWLEDGE_STATUS_LABELS);
+  for (var i = 0; i < keys.length; i++) {
+    if (KNOWLEDGE_STATUS_LABELS[keys[i]] === text) return keys[i];
+  }
+  return upper;
+}
+
+function knowledgeDisplayValue_(header, value) {
+  return KNOWLEDGE_STATUS_FIELDS[header] ? knowledgeStatusLabel_(value) : value;
 }
 
 function knowledgeValidEmail_(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(knowledgeText_(email)); }
@@ -982,4 +1136,3 @@ function knowledgeFail_(title, error) {
   knowledgeAudit_(title, 'ERROR', message);
   knowledgeNotify_(title, message);
 }
-

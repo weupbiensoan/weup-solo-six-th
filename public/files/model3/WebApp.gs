@@ -32,7 +32,7 @@ function getKnowledgeDashboardData() {
     }, 0);
     var warnings = [];
     if (!PropertiesService.getScriptProperties().getProperty(KNOWLEDGE.property.apiKey)) warnings.push('ยังไม่ได้บันทึก OPENAI_API_KEY ขั้นตอนที่ใช้ AI จะยังทำงานไม่ได้');
-    if (!knowledgeConfig_('PUBLISHED_FOLDER_ID', '')) warnings.push('ยังไม่มีโฟลเดอร์ 05_PUBLISHED กรุณาสร้างโครงสร้าง Drive');
+    if (!knowledgeConfig_('PUBLISHED_FOLDER_ID', '')) warnings.push('ยังไม่มีโฟลเดอร์ “05_ฉบับเผยแพร่” กรุณาสร้างโครงสร้าง Drive');
     var invalidPaid = orderRows.filter(function (row) { return row.STATUS === 'PAID' && !knowledgeValidEmail_(row.EMAIL); }).length;
     if (invalidPaid) warnings.push('มีคำสั่งซื้อที่ชำระแล้ว ' + invalidPaid + ' รายการ แต่อีเมลไม่ถูกต้อง');
     var unreviewedDocuments = documents.rows.filter(function (row) {
@@ -57,10 +57,10 @@ function getKnowledgeDashboardData() {
         { label: 'ฉากที่วางแผนแล้ว', value: knowledgeCountRows_(scenes, 'SCENE_ID'), total: Math.max(knowledgeCountRows_(documents, 'DOCUMENT_ID'), 1) }
       ],
       checkpoints: [
-        { label: 'อนุมัติกลุ่มความต้องการ', pending: knowledgePendingBlank_(research, 'CUSTOMER_QUOTE', 'HUMAN_APPROVAL'), field: 'RESEARCH.HUMAN_APPROVAL' },
-        { label: 'อนุมัติแหล่งข้อมูล', pending: knowledgeCountValue_(map, 'SOURCE_STATUS', 'NEEDS_MORE_INFO'), field: 'KNOWLEDGE_MAP.SOURCE_STATUS' },
-        { label: 'อนุมัติเอกสารเผยแพร่', pending: unreviewedDocuments, field: 'DOCUMENT_STATUS.STATUS' },
-        { label: 'ตัดสินใจจากฟีดแบ็ก', pending: knowledgePendingBlank_(feedback, 'ORIGINAL_TEXT', 'DECISION'), field: 'FEEDBACK.DECISION' }
+        { label: 'อนุมัติกลุ่มความต้องการ', pending: knowledgePendingBlank_(research, 'CUSTOMER_QUOTE', 'HUMAN_APPROVAL'), field: 'วิจัย → การอนุมัติโดยผู้ขาย' },
+        { label: 'อนุมัติแหล่งข้อมูล', pending: knowledgeCountValue_(map, 'SOURCE_STATUS', 'NEEDS_MORE_INFO'), field: 'แผนที่ความรู้ → สถานะแหล่ง' },
+        { label: 'อนุมัติเอกสารเผยแพร่', pending: unreviewedDocuments, field: 'สถานะเอกสาร → สถานะ' },
+        { label: 'ตัดสินใจจากฟีดแบ็ก', pending: knowledgePendingBlank_(feedback, 'ORIGINAL_TEXT', 'DECISION'), field: 'ฟีดแบ็ก → การตัดสินใจ' }
       ],
       orders: orderRows.slice(-50).reverse().map(knowledgeDashboardOrder_),
       support: {
@@ -79,14 +79,14 @@ function runKnowledgeOrderAction(action, orderId) {
     var allowed = ['MARK_PAID', 'GRANT_ACCESS', 'SEND_WELCOME', 'REMIND_DAY_3', 'REMIND_DAY_7', 'MARK_COMPLETED'];
     if (allowed.indexOf(action) < 0) throw new Error('ไม่อนุญาตการดำเนินการนี้');
     var found = knowledgeFind_(KNOWLEDGE.sheets.orders, 'ORDER_ID', orderId);
-    if (!found) throw new Error('ไม่พบ ORDER_ID: ' + orderId);
+    if (!found) throw new Error('ไม่พบรหัสคำสั่งซื้อ: ' + orderId);
     var message = '';
     if (action === 'MARK_PAID') {
       if (!knowledgeValidEmail_(found.object.EMAIL)) throw new Error('อีเมลไม่ถูกต้อง กรุณาแก้ไขก่อนยืนยันการชำระเงิน');
-      if (found.object.STATUS !== 'NEW') throw new Error('ยืนยันการชำระเงินได้เฉพาะสถานะ NEW');
+      if (found.object.STATUS !== 'NEW') throw new Error('ยืนยันการชำระเงินได้เฉพาะสถานะ “ใหม่”');
       knowledgeWrite_(found.table, found.rowNumber, { STATUS: 'PAID', PAID_AT: new Date(), SYSTEM_NOTES: '' });
       knowledgeAudit_('MARK_PAID', 'SUCCESS', orderId);
-      message = 'เปลี่ยนสถานะเป็น PAID แล้ว';
+      message = 'เปลี่ยนสถานะเป็น “ชำระแล้ว” แล้ว';
     }
     if (action === 'GRANT_ACCESS') message = grantKnowledgeAccess_(orderId);
     if (action === 'SEND_WELCOME') message = sendKnowledgeWelcome_(orderId);
@@ -117,7 +117,7 @@ function knowledgeDashboardOrder_(row) {
   if (row.STATUS === 'IN_PROGRESS' && row.REMINDER_DAY_7) action = 'MARK_COMPLETED';
   return {
     orderId: knowledgeText_(row.ORDER_ID), fullName: knowledgeText_(row.FULL_NAME), email: knowledgeText_(row.EMAIL),
-    product: knowledgeText_(row.PRODUCT), price: Number(row.PRICE) || 0, status: knowledgeText_(row.STATUS),
+    product: knowledgeText_(row.PRODUCT), price: Number(row.PRICE) || 0, status: knowledgeStatusLabel_(row.STATUS),
     accessAt: knowledgeDashboardDate_(row.ACCESS_GRANTED_AT), nextAction: action,
     note: knowledgeText_(row.SYSTEM_NOTES), documentLink: knowledgeText_(row.DOCUMENT_LINK)
   };
@@ -146,4 +146,3 @@ function knowledgeDashboardSafe_(callback) {
   try { return callback(); }
   catch (error) { return { ok: false, message: error && error.message ? error.message : String(error) }; }
 }
-
