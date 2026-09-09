@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SoloSix — ศูนย์ควบคุมงานให้คำปรึกษา</title>
+  <style>
+    :root{--wine:#7c1936;--wine2:#a12a4b;--ink:#261d21;--muted:#756a6e;--line:#e8dfe2;--paper:#fffdfa;--soft:#f8f1f3;--good:#176b4d;--warn:#9a5b00;--bad:#b42318;--shadow:0 12px 34px rgba(63,26,39,.11)}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:#f6f2ef;color:var(--ink);font-family:"Noto Sans Thai","Leelawadee UI",Tahoma,Arial,sans-serif;line-height:1.55}
+    button,input,textarea{font:inherit}
+    button{cursor:pointer}
+    .top{position:sticky;top:0;z-index:10;background:rgba(255,253,250,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+    .topin{max-width:1480px;margin:auto;padding:16px 24px;display:flex;align-items:center;gap:18px}
+    .brand{display:flex;align-items:center;gap:12px;min-width:250px}.mark{width:44px;height:44px;border-radius:14px;background:var(--wine);color:white;display:grid;place-items:center;font-weight:900}.brand b{display:block;font-size:18px}.brand span{display:block;color:var(--muted);font-size:12px}
+    .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}.updated{font-size:12px;color:var(--muted)}
+    .btn{border:0;border-radius:10px;padding:10px 15px;font-weight:700;background:var(--wine);color:#fff;transition:.15s}.btn:hover{background:var(--wine2);transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}.btn.light{background:#fff;color:var(--wine);border:1px solid #d8c6cc}.btn.soft{background:#efe2e6;color:var(--wine)}.btn.danger{background:#fff0ee;color:var(--bad);border:1px solid #f0c8c3}.btn.small{padding:8px 11px;font-size:13px}
+    main{max-width:1480px;margin:auto;padding:26px 24px 64px}
+    .intro{display:flex;align-items:flex-end;gap:24px;margin-bottom:20px}.intro h1{margin:0;font-size:clamp(26px,3vw,42px);line-height:1.16}.intro p{margin:7px 0 0;color:var(--muted)}
+    .metrics{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.metric{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;min-width:105px}.metric b{font-size:22px;display:block}.metric span{font-size:12px;color:var(--muted)}
+    .notice{display:none;margin:0 0 18px;padding:13px 16px;border-radius:12px;background:#fff7e6;color:#704600;border:1px solid #f1d59c}.notice.show{display:block}
+    .board{display:grid;grid-template-columns:repeat(4,minmax(250px,1fr));gap:14px;align-items:start;overflow-x:auto;padding-bottom:8px}
+    .lane{background:#eee9e7;border:1px solid var(--line);border-radius:18px;min-height:340px;padding:13px}.lane-head{display:flex;align-items:flex-start;justify-content:space-between;padding:4px 3px 12px}.lane-head h2{font-size:17px;margin:0}.lane-head p{font-size:12px;color:var(--muted);margin:2px 0 0}.count{min-width:28px;height:28px;border-radius:10px;background:white;display:grid;place-items:center;font-weight:800;color:var(--wine)}
+    .items{display:grid;gap:10px}.card{background:#fff;border:1px solid transparent;border-radius:14px;padding:13px;box-shadow:0 3px 12px rgba(45,29,34,.05);transition:.15s}.card:hover{border-color:#d8bcc5;transform:translateY(-2px);box-shadow:var(--shadow)}.card-top{display:flex;gap:8px;align-items:start}.card h3{font-size:15px;margin:0;line-height:1.35}.id{color:var(--wine);font-weight:800;font-size:11px;letter-spacing:.2px}.badge{margin-left:auto;background:var(--soft);color:var(--wine);border-radius:999px;padding:3px 7px;font-size:10px;white-space:nowrap}.card p{font-size:12px;color:var(--muted);margin:9px 0 11px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.card-foot{display:flex;align-items:center;gap:8px}.card-foot span{font-size:11px;color:var(--muted)}.card-foot .btn{margin-left:auto}
+    .empty{padding:28px 12px;text-align:center;color:#9a8f92;font-size:13px;border:1px dashed #d8cdcf;border-radius:12px}
+    .overlay{position:fixed;inset:0;background:rgba(28,18,22,.48);z-index:30;display:none}.overlay.show{display:block}.drawer{position:absolute;top:0;right:0;height:100%;width:min(760px,100%);background:var(--paper);box-shadow:-20px 0 50px rgba(20,10,14,.18);overflow-y:auto}.drawer-head{position:sticky;top:0;z-index:2;background:rgba(255,253,250,.97);border-bottom:1px solid var(--line);padding:18px 22px;display:flex;align-items:center;gap:12px}.drawer-head h2{font-size:20px;margin:0}.drawer-head p{margin:2px 0 0;color:var(--muted);font-size:12px}.close{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:10px;width:40px;height:40px;font-size:20px}.drawer-body{padding:20px 22px 70px}.section{background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:14px;padding:17px}.section h3{margin:0 0 12px;font-size:16px}.section h3 small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:3px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 16px}.field{border-bottom:1px solid #f0e9eb;padding:7px 0}.field b{font-size:11px;color:var(--muted);display:block;margin-bottom:2px}.field span{font-size:13px;white-space:pre-wrap}
+    label{font-weight:700;font-size:12px;color:var(--muted);display:block;margin:10px 0 5px}textarea,input{width:100%;border:1px solid #d9ced1;background:#fff;border-radius:10px;padding:11px 12px;color:var(--ink);outline:none}textarea:focus,input:focus{border-color:var(--wine);box-shadow:0 0 0 3px rgba(124,25,54,.08)}textarea{min-height:190px;resize:vertical}.short{min-height:100px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.pre{white-space:pre-wrap;background:#f8f4f5;border-radius:10px;padding:12px;font-size:13px}.risk{background:#fff5eb;border:1px solid #f1d2aa;color:#76430b}.review{background:#f6f1ff;border:1px solid #ded0f2;color:#4d2e72}.reply{margin-top:10px;border-left:3px solid var(--wine);padding:8px 12px;background:#faf6f7;border-radius:0 10px 10px 0}.reply b{font-size:12px}.reply p{white-space:pre-wrap;margin:6px 0;font-size:12px}
+    .toast{position:fixed;left:50%;bottom:28px;z-index:50;transform:translate(-50%,30px);opacity:0;background:#251b1f;color:#fff;padding:11px 16px;border-radius:11px;box-shadow:var(--shadow);transition:.2s;max-width:min(560px,90vw);text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.bad{background:var(--bad)}
+    .loading{position:fixed;inset:0;z-index:60;background:rgba(255,253,250,.76);display:none;place-items:center}.loading.show{display:grid}.spinner{width:46px;height:46px;border:4px solid #eadde1;border-top-color:var(--wine);border-radius:50%;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:1100px){.board{grid-template-columns:repeat(4,300px)}.intro{align-items:flex-start;flex-direction:column}.metrics{margin-left:0;justify-content:flex-start}}
+    @media(max-width:640px){.topin,main{padding-left:14px;padding-right:14px}.brand{min-width:0}.brand span,.updated{display:none}.top-actions{gap:6px}.btn{padding:9px 11px}.intro{margin-bottom:14px}.metrics{display:grid;grid-template-columns:1fr 1fr;width:100%}.board{grid-template-columns:repeat(4,86vw)}.drawer-head,.drawer-body{padding-left:14px;padding-right:14px}.grid{grid-template-columns:1fr}.section{padding:14px}.actions .btn{flex:1 1 140px}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="topin">
+      <div class="brand"><div class="mark">W</div><div><b>WEUP SoloSix</b><span>โมเดล 1 · ตลาดประเทศไทย</span></div></div>
+      <div class="top-actions"><span id="updated" class="updated">กำลังโหลด…</span><button class="btn light" onclick="showStatus()">ตรวจระบบ</button><button class="btn" onclick="loadBoard()">โหลดใหม่</button></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div><h1>ศูนย์ควบคุมงานให้คำปรึกษา</h1><p>เห็นงานทุกขั้นตอน ตรวจร่างก่อนส่ง และติดตามคำตอบของลูกค้าในหน้าเดียว</p></div>
+      <div class="metrics">
+        <div class="metric"><b id="mNew">0</b><span>โปรไฟล์ใหม่</span></div>
+        <div class="metric"><b id="mReview">0</b><span>รอตรวจร่าง</span></div>
+        <div class="metric"><b id="mFinal">0</b><span>รออนุมัติส่ง</span></div>
+        <div class="metric"><b id="mSent">0</b><span>ส่งแล้ว</span></div>
+      </div>
+    </section>
+    <div id="notice" class="notice"></div>
+    <section id="board" class="board"></section>
+  </main>
+
+  <div id="overlay" class="overlay" onclick="overlayClick(event)">
+    <aside class="drawer">
+      <header class="drawer-head"><div><h2 id="detailTitle">รายละเอียดลูกค้า</h2><p id="detailMeta"></p></div><button class="close" onclick="closeDrawer()" aria-label="ปิด">×</button></header>
+      <div id="detailBody" class="drawer-body"></div>
+    </aside>
+  </div>
+  <div id="toast" class="toast"></div>
+  <div id="loading" class="loading"><div class="spinner" aria-label="กำลังประมวลผล"></div></div>
+
+  <script>
+    var state={data:null,currentId:'',details:null,busy:false};
+
+    function runServer(name,args,onDone){
+      setBusy(true);
+      var runner=google.script.run.withSuccessHandler(function(result){
+        setBusy(false);
+        if(!result||!result.ok){toast(result&&result.error?result.error:'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ',true);return;}
+        onDone(result.data);
+      }).withFailureHandler(function(error){setBusy(false);toast(error&&error.message?error.message:String(error),true);});
+      runner[name].apply(runner,args||[]);
+    }
+
+    function loadBoard(){
+      runServer('getDashboardData',[],function(data){state.data=data;renderBoard(data);});
+    }
+
+    function renderBoard(data){
+      document.getElementById('updated').textContent='อัปเดต '+esc(data.generatedAt||'');
+      setText('mNew',data.counts.newClient||0);setText('mReview',data.counts.review||0);setText('mFinal',data.counts.finalReview||0);setText('mSent',data.counts.sent||0);
+      var notice=document.getElementById('notice');
+      if(!data.ready){notice.textContent=data.message||'ระบบยังไม่พร้อม';notice.className='notice show';}else{notice.className='notice';notice.textContent='';}
+      var order=['newClient','review','finalReview','sent'];
+      var html='';
+      order.forEach(function(key){
+        var lane=data.lanes[key];
+        html+='<article class="lane"><div class="lane-head"><div><h2>'+esc(lane.title)+'</h2><p>'+esc(lane.hint)+'</p></div><span class="count">'+lane.items.length+'</span></div><div class="items">';
+        if(!lane.items.length)html+='<div class="empty">ยังไม่มีรายการในขั้นตอนนี้</div>';
+        lane.items.forEach(function(item){
+          html+='<div class="card"><div class="card-top"><div><div class="id">'+esc(item.clientId)+'</div><h3>'+esc(item.name)+'</h3></div><span class="badge">'+esc(item.status)+'</span></div><p>'+esc(item.summary)+'</p><div class="card-foot"><span>'+ (item.replies?('ตอบกลับ '+item.replies+' ฉบับ'):(item.email?esc(item.email):'ยังไม่มีอีเมล')) +'</span><button class="btn small" onclick="openClient(\''+js(item.clientId)+'\')">เปิด</button></div></div>';
+        });
+        html+='</div></article>';
+      });
+      document.getElementById('board').innerHTML=html;
+    }
+
+    function openClient(id){
+      state.currentId=id;
+      runServer('getClientDetails',[id],function(details){state.details=details;renderDetails(details);document.getElementById('overlay').className='overlay show';document.body.style.overflow='hidden';});
+    }
+
+    function renderDetails(d){
+      setText('detailTitle',d.name);setText('detailMeta',d.clientId+' · '+d.workflow);
+      var html='<section class="section"><h3>ข้อมูลจากแบบฟอร์ม <small>ข้อมูลส่วนนี้ไม่ถูกส่งไปยัง AI ทั้งหมด ระบบตัดข้อมูลระบุตัวบุคคลก่อนทุกครั้ง</small></h3><div class="grid">';
+      d.intake.forEach(function(item){html+='<div class="field"><b>'+esc(item.label)+'</b><span>'+esc(item.value)+'</span></div>';});
+      html+='</div></section>';
+
+      if(!d.draft){
+        html+='<section class="section"><h3>ร่างแผน 4 สัปดาห์</h3><p>ยังไม่มีร่าง ระบบจะส่งเฉพาะข้อมูลที่ไม่ระบุตัวบุคคลให้ AI</p><div class="actions"><button class="btn" onclick="actionCreateDraft()">ให้ AI สร้างร่าง</button></div></section>';
+      }else{
+        if(d.draft.risk)html+='<section class="section risk"><h3>ผลคัดกรองที่ต้องตรวจสอบ</h3><div class="pre">'+esc(d.draft.risk)+'</div></section>';
+        if(d.draft.review)html+='<section class="section review"><h3>ประเด็นที่ผู้ให้คำปรึกษาต้องตรวจ</h3><div class="pre">'+esc(d.draft.review)+'</div></section>';
+        html+='<section class="section"><h3>ร่างแผน 4 สัปดาห์ <small>แก้ข้อความได้โดยตรง แล้วบันทึกก่อนอนุมัติ</small></h3><label for="draftText">เนื้อหาร่าง</label><textarea id="draftText">'+esc(d.draft.content)+'</textarea><div class="actions"><button class="btn light" onclick="actionSaveDraft()">บันทึกร่าง</button><button class="btn" onclick="actionApproveDraft()">ตกลงและไปขั้นสุดท้าย</button></div><label for="feedbackText">ข้อเสนอแนะให้ AI แก้</label><textarea id="feedbackText" class="short" placeholder="ระบุส่วนที่ต้องแก้และผลลัพธ์ที่ต้องการ">'+esc(d.draft.feedback||'')+'</textarea><div class="actions"><button class="btn soft" onclick="actionReviseDraft()">ส่งข้อเสนอแนะและสร้างร่างใหม่</button></div>';
+        if(d.draft.changes)html+='<label>รายการที่ AI แก้ครั้งล่าสุด</label><div class="pre">'+esc(d.draft.changes)+'</div>';
+        html+='</section>';
+      }
+
+      if(d.finalPlan){
+        html+='<section class="section"><h3>ข้อความฉบับสุดท้าย <small>ผู้ให้คำปรึกษาต้องรับผิดชอบและกดอนุมัติด้วยตนเองก่อนส่ง</small></h3><label for="mailTo">ผู้รับ</label><input id="mailTo" value="'+esc(d.finalPlan.email)+'" disabled><label for="mailSubject">หัวข้ออีเมล</label><input id="mailSubject" value="'+esc(d.finalPlan.subject)+'"><label for="finalText">เนื้อหา</label><textarea id="finalText">'+esc(d.finalPlan.content)+'</textarea>';
+        if(d.finalPlan.review)html+='<label>จุดที่ควรตรวจอีกครั้ง</label><div class="pre review">'+esc(d.finalPlan.review)+'</div>';
+        html+='<div class="actions"><button class="btn light" onclick="actionSaveFinal()">บันทึกฉบับสุดท้าย</button>';
+        if(!d.finalPlan.sentAt)html+='<button class="btn" onclick="actionApproveSend()">อนุมัติและส่งอีเมล</button><button class="btn danger" onclick="actionMoveBack()">กลับไปตรวจร่าง</button>';
+        else html+='<button class="btn soft" onclick="actionResend()">ส่งซ้ำอีกครั้ง</button>';
+        html+='</div>';
+        if(d.finalPlan.sentAt)html+='<p class="pre">ส่งเมื่อ: '+esc(d.finalPlan.sentAt)+'\n'+esc(d.finalPlan.note||'')+'</p>';
+        html+='</section>';
+      }
+
+      if(d.replies&&d.replies.length){
+        html+='<section class="section"><h3>อีเมลตอบกลับของลูกค้า <small>AI สรุปข้อมูล แต่มนุษย์เป็นผู้ตัดสินใจและตอบกลับ</small></h3>';
+        d.replies.forEach(function(r){html+='<div class="reply"><b>'+esc(r.readAt)+'</b><p><strong>ทำได้:</strong> '+esc(r.completed)+'\n<strong>อุปสรรค:</strong> '+esc(r.obstacles)+'\n<strong>คำถาม:</strong> '+esc(r.questions)+'\n<strong>ต้องตรวจ:</strong> '+esc(r.review)+'</p></div>';});
+        html+='</section>';
+      }
+      document.getElementById('detailBody').innerHTML=html;
+    }
+
+    function actionCreateDraft(){callAction('createDraftFromDashboard',[state.currentId]);}
+    function actionSaveDraft(){callAction('saveDraftFromDashboard',[state.currentId,value('draftText')]);}
+    function actionReviseDraft(){if(!value('feedbackText').trim()){toast('กรุณาเขียนข้อเสนอแนะก่อน',true);return;}callAction('reviseDraftFromDashboard',[state.currentId,value('feedbackText')]);}
+    function actionApproveDraft(){if(!confirm('คุณตรวจร่างทั้งหมดแล้ว และต้องการสร้างข้อความฉบับสุดท้ายใช่หรือไม่?'))return;callAction('approveDraftFromDashboard',[state.currentId]);}
+    function actionSaveFinal(){callAction('saveFinalPlanFromDashboard',[state.currentId,value('mailSubject'),value('finalText')]);}
+    function actionApproveSend(){if(!confirm('ยืนยันว่าคุณตรวจเนื้อหาแล้ว และต้องการส่งอีเมลถึงลูกค้าตอนนี้?'))return;callAction('approveAndSendFromDashboard',[state.currentId,value('mailSubject'),value('finalText')]);}
+    function actionResend(){if(!confirm('อีเมลนี้เคยส่งแล้ว ยืนยันส่งซ้ำอีกครั้ง?'))return;callAction('resendFromDashboard',[state.currentId]);}
+    function actionMoveBack(){if(!confirm('ย้ายกลับไปขั้นตรวจร่าง? ข้อมูลฉบับสุดท้ายเดิมจะยังคงอยู่'))return;callAction('moveBackToReviewFromDashboard',[state.currentId]);}
+
+    function callAction(name,args){runServer(name,args,function(result){toast(result.message||'ดำเนินการเรียบร้อย');if(result.details){state.details=result.details;renderDetails(result.details);}refreshBoardQuiet();});}
+    function refreshBoardQuiet(){google.script.run.withSuccessHandler(function(result){if(result&&result.ok){state.data=result.data;renderBoard(result.data);}}).getDashboardData();}
+
+    function showStatus(){
+      runServer('getSystemStatus',[],function(s){
+        var missing=s.sheets.filter(function(x){return !x.exists;}).map(function(x){return x.name;});
+        var text='Google Sheets: '+s.spreadsheet+'\nLocale: '+s.locale+' · Time zone: '+s.timeZone+'\nModel: '+s.model+'\nOpenAI API key: '+(s.apiKeyConfigured?'ตั้งค่าแล้ว':'ยังไม่ได้ตั้งค่า')+'\nทริกเกอร์แบบฟอร์ม: '+(s.triggers.formSubmit?'พร้อม':'ยังไม่มี')+'\nทริกเกอร์อ่านอีเมล: '+(s.triggers.emailReader?'พร้อม':'ยังไม่มี')+(missing.length?'\nชีตที่ยังขาด: '+missing.join(', '):'\nชีตระบบ: ครบ');
+        alert(text);
+      });
+    }
+
+    function closeDrawer(){document.getElementById('overlay').className='overlay';document.body.style.overflow='';state.currentId='';}
+    function overlayClick(e){if(e.target.id==='overlay')closeDrawer();}
+    function setBusy(on){state.busy=on;document.getElementById('loading').className=on?'loading show':'loading';}
+    function toast(message,bad){var el=document.getElementById('toast');el.textContent=message;el.className='toast show'+(bad?' bad':'');clearTimeout(toast.timer);toast.timer=setTimeout(function(){el.className='toast';},3200);}
+    function value(id){var el=document.getElementById(id);return el?el.value:'';}
+    function setText(id,text){var el=document.getElementById(id);if(el)el.textContent=text;}
+    function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+    function js(value){return String(value==null?'':value).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' ');}
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
+    loadBoard();
+  </script>
+</body>
+</html>

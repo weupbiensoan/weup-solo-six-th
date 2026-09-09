@@ -103,9 +103,9 @@ function addDefaultPreparation(step:GuideStep):GuideStep{
 }
 
 const codeFiles=[
-  {n:"โค้ด 01",title:"ระบบที่ปรึกษา",where:"ลงในไฟล์ Code.gs ที่มีใน Apps Script",path:"/files/He-thong-tu-van.gs",download:"He-thong-tu-van.gs"},
-  {n:"โค้ด 02",title:"ผิวหน้า Dashboard",where:"กรอกไฟล์ HTML ชื่อ Dashboard แล้วติดตั้ง",path:"/files/Dashboard.html",download:"Dashboard.html"},
-  {n:"โค้ด 03",title:"การสอดคล้อง Dashboard",where:"สร้างไฟล์รหัสชื่อ WebApp แล้วติดตั้ง",path:"/files/Dieu-Phoi.gs",download:"Dieu-Phoi.gs"},
+  {n:"โค้ด 01",title:"ระบบหลักและเมนู",where:"ลบโค้ดตัวอย่างใน Code.gs แล้ววางโค้ดทั้งหมดจาก Main.gs",path:"/files/model1/Main.gs",download:"Main.gs"},
+  {n:"โค้ด 02",title:"ฝั่งเซิร์ฟเวอร์ของ Dashboard",where:"สร้างไฟล์สคริปต์ชื่อ WebApp แล้ววางโค้ดทั้งหมดจาก WebApp.gs",path:"/files/model1/WebApp.gs",download:"WebApp.gs"},
+  {n:"โค้ด 03",title:"หน้าจอ Dashboard",where:"สร้างไฟล์ HTML ชื่อ Dashboard โดยไม่ต้องพิมพ์ .html แล้ววางโค้ดทั้งหมด",path:"/files/model1/Dashboard.html",download:"Dashboard.html"},
 ];
 const codeFiles2=[
   {n:"โค้ด 01",title:"งานและเมนู",where:"สร้างไฟล์คําสั่งชื่อมังกร และติดตั้ง",path:"/files/model2/Ma.gs",download:"Ma.gs"},
