@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#144080;
+    --blue-dark:#0C2B57;
+    --blue-bright:#1F5DB0;
+    --blue-soft:#EDF2FA;
+    --amber:#B4761E;
+    --amber-soft:#FDF6E3;
+    --red:#9B2C22;
+    --red-soft:#FBEEEC;
+    --green:#1F6B4A;
+    --background:#F4F6F9;
+    --border:#E2E6EC;
+    --text:#1E2530;
+    --label:#6B7280;
+    --sans:'Noto Sans Thai',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--background);color:var(--text);font-family:var(--sans);font-size:13.5px;line-height:1.55}
+  .page{padding:18px 22px 40px;max-width:1180px;margin:0 auto}
+
+  .hero{position:relative;overflow:hidden;border-radius:12px;color:#fff;padding:24px 28px 90px;
+    background:linear-gradient(135deg,#1B4E96 0%,var(--blue) 55%,var(--blue-dark) 100%)}
+  .hero::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 2px,transparent 2px 12px)}
+  .hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+  .hero h1{font-size:27px;font-weight:700;letter-spacing:-.02em;margin:7px 0 8px}
+  .hero p{margin:0;font-size:13.5px;color:rgba(255,255,255,.87);max-width:640px}
+  .hero-side{display:flex;align-items:center;gap:14px;flex-shrink:0}
+  .timestamp{font-family:var(--mono);font-size:11.5px;color:rgba(255,255,255,.85);display:flex;align-items:center;gap:8px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#F0C36B;display:inline-block}
+  button.refresh-button{font-family:var(--sans);font-size:13px;font-weight:600;color:#fff;cursor:pointer;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.45);border-radius:7px;padding:10px 18px}
+  button.refresh-button:hover{background:#fff;color:var(--blue)}
+
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:-64px 12px 0;position:relative;z-index:2}
+  .kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);
+    border-radius:9px;padding:16px 20px 18px;box-shadow:0 3px 14px rgba(20,64,128,.09)}
+  .kpi-card .label{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#4B5563}
+  .kpi-card .value{font-family:var(--mono);font-size:30px;font-weight:500;color:var(--blue);line-height:1.15;margin:6px 0 4px;word-break:break-word}
+  .kpi-card .description{font-size:12.5px;color:var(--label)}
+
+  .warning-box{background:var(--amber-soft);border:1px solid #F0E2BE;border-left:4px solid var(--amber);
+    border-radius:8px;padding:13px 18px;margin:18px 12px 0}
+  .warning-box div{font-size:13px;margin-bottom:4px}
+  .warning-box div:last-child{margin-bottom:0}
+  .warning-box b{color:var(--red);font-weight:600}
+
+  section{margin:28px 12px 0}
+  .section-title{display:flex;align-items:baseline;gap:12px;margin-bottom:13px}
+  .section-title h2{font-size:17px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .section-title .source{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--label)}
+  .section-title .meta{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--blue)}
+  .card{background:#fff;border:1px solid var(--border);border-radius:9px}
+
+  .task{padding:16px 20px;border-left:4px solid var(--blue)}
+  .task .n{font-size:14px;font-weight:600;margin-bottom:4px}
+  .task .m{font-size:13px;color:#3D4655}
+  .task button{margin-top:11px;font-family:var(--sans);font-size:13px;font-weight:600;background:var(--blue);
+    color:#fff;border:none;border-radius:7px;padding:9px 16px;cursor:pointer}
+  .task button:hover{background:var(--blue-bright)}
+  .task button:disabled{background:#D5D9E0;color:#8A9099;cursor:default}
+
+  table.metrics-table{width:100%;border-collapse:collapse}
+  table.metrics-table td{padding:9px 14px;border-bottom:1px solid #F0F2F5;font-size:13px}
+  table.metrics-table tr:last-child td{border-bottom:none}
+  table.metrics-table td.name{color:var(--label);width:42%}
+  table.metrics-table td.value{font-family:var(--mono);font-weight:500;color:var(--text)}
+  table.metrics-table td.wide{font-family:var(--sans);font-weight:400;color:#3D4655}
+
+  .errors{padding:14px 18px}
+  .errors ul{margin:8px 0 0;padding-left:18px}
+  .errors li{font-family:var(--mono);font-size:11.5px;color:var(--red);margin-bottom:4px}
+  .passed{padding:14px 18px;font-size:13px;color:var(--green)}
+
+  .report-card{padding:16px 20px}
+  .report-card h4{margin:0 0 5px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue)}
+  .report-card p{margin:0 0 14px;font-size:13px;color:#3D4655;white-space:pre-wrap}
+  .report-card p:last-child{margin-bottom:0}
+  .status-label{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:4px 10px;border-radius:20px;margin-left:8px}
+  .status-PENDING_APPROVAL{background:var(--amber-soft);color:#8A6410;border:1px solid #F0E2BE}
+  .status-APPROVED_TO_SEND{background:var(--blue-soft);color:var(--blue);border:1px solid #CBD9EE}
+  .status-SENT{background:#EAF4EF;color:var(--green);border:1px solid #C9E3D6}
+  .status-ERROR,.status-NEEDS_DATA_FIX{background:var(--red-soft);color:var(--red);border:1px solid #F0D6D2}
+
+  .approval{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .approval label{font-size:12.5px;font-weight:600;display:block;margin-bottom:6px}
+  .approval input{font-family:var(--sans);font-size:13px;padding:9px 12px;border:1px solid var(--border);
+    border-radius:7px;width:260px;background:#FCFDFE;margin-right:10px}
+  .approval button{font-family:var(--sans);font-size:12.5px;font-weight:600;background:var(--green);color:#fff;
+    border:none;border-radius:7px;padding:10px 16px;cursor:pointer}
+  .approval button:hover{background:#17583C}
+  .approval button:disabled{background:#D5D9E0;color:#8A9099;cursor:default}
+  .approval-note{font-size:12px;color:var(--label);margin-top:9px;max-width:620px}
+  #approvalResult{font-family:var(--mono);font-size:11.5px;color:var(--green);margin-top:9px;white-space:pre-wrap}
+
+  .empty{font-size:12.5px;color:var(--label);background:#fff;border:1px dashed var(--border);border-radius:9px;padding:15px 17px}
+  .reminders{padding:16px 20px;border-left:4px solid var(--amber)}
+  .reminders li{margin-bottom:8px;font-size:13px}
+  .reminders li:last-child{margin-bottom:0}
+  .reminders span{color:var(--label)}
+  ul{margin:0;padding-left:18px}
+
+  .settings{padding:17px 20px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+  .settings label{font-size:12.5px;font-weight:600;display:block;margin-bottom:6px}
+  .settings input{font-family:var(--mono);font-size:12px;padding:9px 12px;border:1px solid var(--border);
+    border-radius:7px;width:340px;background:#FCFDFE}
+  .settings button{font-family:var(--sans);font-size:12.5px;font-weight:600;background:var(--blue);color:#fff;
+    border:none;border-radius:7px;padding:10px 16px;cursor:pointer;margin-top:25px}
+  .settings .help-text{font-size:12px;color:var(--label);max-width:420px;margin-top:25px}
+  #keyResult,#actionResult,#fileResult{font-family:var(--mono);font-size:11.5px;color:var(--blue);margin:10px 0 0;white-space:pre-wrap}
+
+  .loading{padding:60px 0;text-align:center;color:var(--label);font-family:var(--mono);font-size:12px}
+  .load-error{border:1px solid #F0D6D2;border-left:4px solid var(--red);background:var(--red-soft);color:var(--red);
+    padding:15px 18px;border-radius:8px;font-size:13px;margin:18px 12px 0}
+
+  @media (max-width:760px){ .kpi{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:no-preference){
+    .kpi,.warning-box,section{animation:fadeUp .3s ease-out both}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="eyebrow">ระบบรายงานยอดขายรายสัปดาห์</div>
+        <h1>แดชบอร์ด</h1>
+        <p id="periodDescription">โค้ดคำนวณตัวเลขทั้งหมด AI เขียนเฉพาะความคิดเห็น และจะไม่ส่งรายงานก่อนผู้จัดการอนุมัติ</p>
+      </div>
+      <div class="hero-side">
+        <div class="timestamp"><span class="dot"></span><span id="lastUpdated">กำลังโหลด</span></div>
+        <button class="refresh-button" onclick="loadDashboard()">อัปเดต</button>
+      </div>
+    </div>
+  </header>
+  <div id="content"><div class="loading">กำลังอ่านสเปรดชีต…</div></div>
+</div>
+
+<script>
+function loadDashboard(){
+  document.getElementById('content').innerHTML = '<div class="loading">กำลังอ่านสเปรดชีต…</div>';
+  google.script.run
+    .withSuccessHandler(renderDashboard)
+    .withFailureHandler(function(e){
+      document.getElementById('content').innerHTML =
+        '<div class="load-error"><b>ไม่สามารถอ่านข้อมูลได้</b><br>' + escapeHtml(e.message) +
+        '<br>หากยังไม่มีชีต ให้เรียกเมนู รายงานประจำสัปดาห์ → 1. สร้างโครงสร้างชีต</div>';
+    })
+    .getDashboardData();
+}
+
+function escapeHtml(s){
+  return String(s===null||s===undefined?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatCurrency(n){ return '฿' + Number(n||0).toLocaleString('th-TH'); }
+
+function renderDashboard(data){
+  document.getElementById('lastUpdated').textContent = 'อัปเดต ' + data.updatedAt;
+  document.getElementById('periodDescription').textContent =
+    'รอบรายงาน ' + data.period.id + ' ตั้งแต่ ' + data.period.fromDate + ' ถึง ' + data.period.toDate +
+    ' โค้ดคำนวณตัวเลขทั้งหมด AI เขียนเฉพาะความคิดเห็น และจะไม่ส่งรายงานก่อนผู้จัดการอนุมัติ';
+  var html = '';
+
+  html += '<div class="kpi">';
+  data.kpi.forEach(function(k){
+    var value = k.type === 'currency' ? formatCurrency(k.value) : escapeHtml(k.value);
+    html += '<div class="kpi-card"><div class="label">' + escapeHtml(k.label) + '</div>' +
+         '<div class="value">' + value + '</div><div class="description">' + escapeHtml(k.description) + '</div></div>';
+  });
+  html += '</div>';
+
+  if(data.warnings.length){
+    html += '<div class="warning-box">';
+    data.warnings.forEach(function(c){
+      html += '<div><b>' + escapeHtml(c.label) + '</b> ' + escapeHtml(c.message) + '</div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<section><div class="section-title"><h2>ขั้นตอนถัดไป</h2>' +
+       '<div class="source">รอบ ' + escapeHtml(data.period.id) + '</div></div>' +
+       '<div class="card task"><div class="n">' + escapeHtml(data.nextAction.task) + '</div>';
+  if(data.nextAction.action){
+    html += '<button id="actionButton" onclick="runAction(\'' + escapeHtml(data.nextAction.action) + '\')">' +
+         escapeHtml(data.nextAction.label) + '</button>';
+  }
+  html += '<div id="actionResult"></div></div></section>';
+
+  html += '<section><div class="section-title"><h2>ตรวจสอบข้อมูล</h2>' +
+       '<div class="source">ชีต ข้อมูลรายวัน</div>' +
+       '<div class="meta">' + data.data.rowCount + ' แถวในรอบ</div></div><div class="card">';
+  if(data.data.passed){
+    html += '<div class="passed">ข้อมูลผ่านการตรวจสอบ ช่องบังคับว่าง ' + data.data.blankRate + '%' +
+         (data.data.outsidePeriod ? ' ข้ามข้อมูลจากรอบอื่น ' + data.data.outsidePeriod + ' แถว' : '') + '</div>';
+  } else {
+    html += '<div class="errors"><b>ต้องแก้ข้อผิดพลาด ' + data.data.errorCount + ' รายการก่อนคำนวณ</b><ul>';
+    data.data.errors.forEach(function(l){ html += '<li>' + escapeHtml(l) + '</li>'; });
+    if(data.data.errorCount > data.data.errors.length){
+      html += '<li>… ยังมีอีก ' + (data.data.errorCount - data.data.errors.length) + ' รายการ โปรดดูชีต บันทึกระบบ</li>';
+    }
+    html += '</ul></div>';
+  }
+  html += '</div></section>';
+
+  html += '<section><div class="section-title"><h2>ตัวชี้วัดรายสัปดาห์</h2>' +
+       '<div class="source">ชีต ตัวชี้วัดรายสัปดาห์</div></div>';
+  if(!data.metrics){
+    html += '<div class="empty">ยังไม่มีตัวชี้วัดสำหรับรอบนี้ เรียกเมนู 3 เพื่อคำนวณและแสดงข้อมูลในส่วนนี้</div>';
+  } else {
+    html += '<div class="card"><table class="metrics-table">';
+    data.metrics.forEach(function(c){
+      var value = c.wide ? escapeHtml(c.value) : (typeof c.value === 'number' ? c.value.toLocaleString('th-TH') : escapeHtml(c.value));
+      html += '<tr><td class="name">' + escapeHtml(c.name) + '</td>' +
+           '<td class="value' + (c.wide ? ' wide' : '') + '">' + value + escapeHtml(c.suffix) + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+  html += '</section>';
+
+  html += '<section><div class="section-title"><h2>รายงาน</h2>' +
+       '<div class="source">ชีต รายงาน AI</div></div>';
+  if(!data.report){
+    html += '<div class="empty">ยังไม่มีรายงานสำหรับรอบนี้ เรียกเมนู 4 เพื่อสร้างร่างความคิดเห็นด้วย AI</div>';
+  } else {
+    html += '<div class="card report-card"><div style="margin-bottom:12px"><span style="font-family:var(--mono);font-size:12px">' +
+         escapeHtml(data.report.id) + '</span><span class="status-label status-' + escapeHtml(data.report.status) + '">' +
+         escapeHtml(data.report.statusLabel) + '</span>' +
+         (data.report.approvedBy ? '<span style="font-size:12px;color:var(--label);margin-left:10px">ผู้อนุมัติ: ' + escapeHtml(data.report.approvedBy) + '</span>' : '') +
+         '</div>';
+    if(data.report.status === 'ERROR'){
+      html += '<h4>คำตอบดิบที่เกิดข้อผิดพลาด</h4><p>' + escapeHtml(data.report.rawJson.slice(0,1500)) + '</p>';
+    } else {
+      html += '<h4>ภาพรวม</h4><p>' + escapeHtml(data.report.overview) + '</p>' +
+           '<h4>คำเตือน</h4><p>' + escapeHtml(data.report.warnings) + '</p>' +
+           '<h4>การดำเนินการที่แนะนำ</h4><p>' + escapeHtml(data.report.action) + '</p>' +
+           '<h4>คำถามสำหรับผู้จัดการ</h4><p>' + escapeHtml(data.report.managerQuestions) + '</p>';
+      if(data.report.status === 'PENDING_APPROVAL'){
+        html += '<div class="approval"><label for="approverInput">ผู้อนุมัติ</label>' +
+             '<input id="approverInput" type="text" placeholder="กรอกชื่อแล้วกดอนุมัติ">' +
+             '<button onclick="approveReportFromDashboard(\'' + escapeHtml(data.report.id) + '\')">อนุมัติรายงาน</button>' +
+             '<div class="approval-note">การอนุมัติหมายถึงคุณอ่านและรับผิดชอบต่อเนื้อหาแล้ว ' +
+             'หากต้องแก้ข้อความ ให้แก้ในชีต รายงาน AI ก่อนแล้วจึงกลับมาอนุมัติ</div>' +
+             '<div id="approvalResult"></div></div>';
+      }
+    }
+    html += '</div>';
+  }
+  html += '</section>';
+
+  html += '<section><div class="section-title"><h2>ระบบช่วยเตือน แต่ไม่ตัดสินใจแทน</h2></div>' +
+       '<div class="card reminders"><ul>';
+  data.reminders.forEach(function(n){
+    html += '<li><b>' + escapeHtml(n.task) + '</b> — <span>' + escapeHtml(n.note) + '</span></li>';
+  });
+  html += '</ul></div></section>';
+
+  html += '<section><div class="section-title"><h2>แหล่งข้อมูล</h2>' +
+       '<div class="source">' + escapeHtml(data.source.location) + '</div></div>' +
+       '<div class="card settings">' +
+       '<div><label for="customerFileInput">ลิงก์ไฟล์ข้อมูลของลูกค้า</label>' +
+       '<input id="customerFileInput" type="text" value="' + escapeHtml(data.source.id) + '" placeholder="วางลิงก์ Google Sheets ของลูกค้า"></div>' +
+       '<button onclick="saveCustomerFileSettings()">เชื่อมไฟล์</button>' +
+       '<div class="help-text">' + escapeHtml(data.source.description) + '</div></div><div id="fileResult"></div></section>';
+
+  html += '<section><div class="section-title"><h2>การตั้งค่า</h2><div class="source">Script Properties</div></div>' +
+       '<div class="card settings">' +
+       '<div><label for="apiKeyInput">OPENAI_API_KEY</label>' +
+       '<input id="apiKeyInput" type="password" placeholder="วางคีย์แล้วกดบันทึก" autocomplete="off"></div>' +
+       '<button onclick="saveApiKeySettings()">บันทึกคีย์</button>' +
+       '<div class="help-text">คีย์จะบันทึกใน Script Properties ของโปรเจกต์ ไม่เขียนลงสเปรดชีตหรือซอร์สโค้ด ' +
+       'หลังบันทึกให้เรียกเมนู 6 เพื่อตรวจสอบการเชื่อมต่อ</div></div><div id="keyResult"></div></section>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function runAction(action){
+  var button = document.getElementById('actionButton');
+  var resultElement = document.getElementById('actionResult');
+  var originalLabel = button ? button.textContent : '';
+  if(button){ button.disabled = true; button.textContent = 'กำลังทำงาน…'; }
+  resultElement.textContent = 'กำลังส่งคำสั่งไปยังสเปรดชีต…';
+  google.script.run
+    .withSuccessHandler(function(r){ resultElement.textContent = r; setTimeout(loadDashboard, 1600); })
+    .withFailureHandler(function(e){
+      resultElement.textContent = 'ข้อผิดพลาด: ' + e.message;
+      if(button){ button.disabled = false; button.textContent = originalLabel; }
+    })
+    .runDashboardAction(action);
+}
+
+function approveReportFromDashboard(id){
+  var o = document.getElementById('approverInput');
+  var resultElement = document.getElementById('approvalResult');
+  if(!o.value.trim()){ resultElement.textContent = 'ยังไม่ได้กรอกชื่อผู้อนุมัติ'; return; }
+  var button = o.parentNode.querySelector('button');
+  button.disabled = true; button.textContent = 'กำลังอนุมัติ…';
+  resultElement.textContent = '';
+  google.script.run
+    .withSuccessHandler(function(r){ resultElement.textContent = r; setTimeout(loadDashboard, 1500); })
+    .withFailureHandler(function(e){
+      resultElement.textContent = 'ข้อผิดพลาด: ' + e.message;
+      button.disabled = false; button.textContent = 'อนุมัติรายงาน';
+    })
+    .approveReport(id, o.value.trim());
+}
+
+function saveCustomerFileSettings(){
+  var o = document.getElementById('customerFileInput');
+  var resultElement = document.getElementById('fileResult');
+  resultElement.textContent = 'กำลังตรวจสอบไฟล์…';
+  google.script.run
+    .withSuccessHandler(function(r){ resultElement.textContent = r; setTimeout(loadDashboard, 1600); })
+    .withFailureHandler(function(e){ resultElement.textContent = 'ข้อผิดพลาด: ' + e.message; })
+    .saveCustomerFile(o.value.trim());
+}
+
+function saveApiKeySettings(){
+  var o = document.getElementById('apiKeyInput');
+  var resultElement = document.getElementById('keyResult');
+  if(!o.value.trim()){ resultElement.textContent = 'ยังไม่ได้กรอก API key'; return; }
+  resultElement.textContent = 'กำลังบันทึก…';
+  google.script.run
+    .withSuccessHandler(function(r){ resultElement.textContent = r; o.value=''; setTimeout(loadDashboard, 1400); })
+    .withFailureHandler(function(e){ resultElement.textContent = 'ข้อผิดพลาด: ' + e.message; })
+    .saveApiKey(o.value.trim());
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
+
