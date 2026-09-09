@@ -6,7 +6,7 @@ export type Model6DetailedGuideStep = {
 };
 
 const images = (...numbers: number[]) =>
-  numbers.map((number) => `m6-ch8-${String(number).padStart(3, "0")}.png`);
+  numbers.map((number) => `m6-th-ch8-${String(number).padStart(3, "0")}.png`);
 
 /** คู่มือโมเดล 6 บทที่ 8 พร้อมภาพหน้าจอภาษาไทย 54 ตำแหน่ง */
 export const model6DetailedGuide: Model6DetailedGuideStep[] = [

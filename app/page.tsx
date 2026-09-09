@@ -244,7 +244,7 @@ const defaultGuide6:GuideStep[]=model6DetailedGuide.map(step=>({
   preparation:step.preparation?{manual:[...step.preparation.manual],automatic:[...step.preparation.automatic]}:undefined,
 }));
 function upgradeGuide6(saved:GuideStep[]){
-  const isDetailedVersion=saved.some(s=>s.id==="m6-01-tao-tep-trung-tam")&&saved.some(s=>s.detailImages?.flat()?.includes("m6-ch8-054.png"));
+  const isDetailedVersion=saved.some(s=>s.id==="m6-01-tao-tep-trung-tam")&&saved.some(s=>s.detailImages?.flat()?.includes("m6-th-ch8-054.png"));
   if(!isDetailedVersion)return defaultGuide6;
   return saved.map((s,i)=>({...s,n:String(i+1).padStart(2,"0")}));
 }
