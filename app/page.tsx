@@ -118,9 +118,9 @@ const codeFiles3=[
   {n:"โค้ด 03",title:"หน้าจอ Dashboard",where:"สร้างไฟล์ HTML ชื่อ Dashboard โดยไม่ต้องพิมพ์ .html แล้ววางโค้ดทั้งหมด",path:"/files/model3/Dashboard.html",download:"Dashboard.html"},
 ];
 const codeFiles4=[
-  {n:"โค้ด 01",title:"งานรายงานรายการสัปดาห์และเมนู",where:"สร้างไฟล์คําสั่งชื่อมังกร และติดตั้ง",path:"/files/model4/Ma.gs",download:"Ma.gs"},
-  {n:"โค้ด 02",title:"คอร์ดควบคุม",where:"กรอกไฟล์ สร้างคําสั่งชื่อ_dieu_khien แล้วติดตั้ง",path:"/files/model4/bang_dieu_khien.gs",download:"bang_dieu_khien.gs"},
-  {n:"โค้ด 03",title:"ผจญจาน",where:"กรอกไฟล์ HTML ชื่อรัฐ_dieu_khien แล้วติดตั้ง",path:"/files/model4/bang_dieu_khien.html",download:"bang_dieu_khien.html"},
+  {n:"โค้ด 01",title:"ระบบหลัก เมนู และกระบวนการรายงาน",where:"ลบโค้ดตัวอย่างใน Code.gs แล้ววางโค้ดทั้งหมด จากนั้นตั้งชื่อไฟล์เป็น Main.gs",path:"/files/model4/Ma.gs",download:"Main.gs"},
+  {n:"โค้ด 02",title:"ฝั่งเซิร์ฟเวอร์ของ Dashboard",where:"สร้างไฟล์สคริปต์ชื่อ WebApp แล้ววางโค้ดทั้งหมดจาก WebApp.gs",path:"/files/model4/bang_dieu_khien.gs",download:"WebApp.gs"},
+  {n:"โค้ด 03",title:"หน้าจอ Dashboard",where:"สร้างไฟล์ HTML ชื่อ Dashboard โดยไม่ต้องพิมพ์ .html แล้ววางโค้ดทั้งหมด",path:"/files/model4/bang_dieu_khien.html",download:"Dashboard.html"},
 ];
 const codeFiles5=[
   {n:"โค้ด 01",title:"งาน, เมนู และเซอร์เวอร์ปานต์",where:"ในไฟล์ Code.gs ที่มี ลบรหัสตัวอย่าง แล้วติดรหัส Ma.gs ทั้งหมด",path:"/files/model5/Ma.gs",download:"Ma.gs"},

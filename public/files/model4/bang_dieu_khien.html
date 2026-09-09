@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --xanh:#144080;
@@ -21,7 +21,7 @@
     --duong:#E2E6EC;
     --muc:#1E2530;
     --nhan:#6B7280;
-    --chu:'Be Vietnam Pro',system-ui,sans-serif;
+    --chu:'Noto Sans Thai',system-ui,sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,monospace;
   }
   *{box-sizing:border-box}
@@ -137,28 +137,28 @@
   <header class="hero">
     <div class="hero-trong">
       <div>
-        <div class="eyebrow">Công cụ báo cáo bán hàng tuần</div>
-        <h1>Bảng điều khiển</h1>
-        <p id="moTaKy">Mã tính toàn bộ con số, AI chỉ viết phần nhận xét, và không báo cáo nào được gửi khi chưa có người duyệt.</p>
+        <div class="eyebrow">ระบบรายงานยอดขายรายสัปดาห์</div>
+        <h1>แดชบอร์ด</h1>
+        <p id="moTaKy">โค้ดคำนวณตัวเลขทั้งหมด AI เขียนเฉพาะความคิดเห็น และจะไม่ส่งรายงานก่อนผู้จัดการอนุมัติ</p>
       </div>
       <div class="hero-phai">
-        <div class="luc"><span class="cham"></span><span id="capNhat">đang tải</span></div>
-        <button class="lam-moi" onclick="tai()">Cập nhật lại</button>
+        <div class="luc"><span class="cham"></span><span id="capNhat">กำลังโหลด</span></div>
+        <button class="lam-moi" onclick="tai()">อัปเดต</button>
       </div>
     </div>
   </header>
-  <div id="noiDung"><div class="dang-tai">Đang đọc bảng tính…</div></div>
+  <div id="noiDung"><div class="dang-tai">กำลังอ่านสเปรดชีต…</div></div>
 </div>
 
 <script>
 function tai(){
-  document.getElementById('noiDung').innerHTML = '<div class="dang-tai">Đang đọc bảng tính…</div>';
+  document.getElementById('noiDung').innerHTML = '<div class="dang-tai">กำลังอ่านสเปรดชีต…</div>';
   google.script.run
     .withSuccessHandler(ve)
     .withFailureHandler(function(e){
       document.getElementById('noiDung').innerHTML =
-        '<div class="loi-tai"><b>Không đọc được dữ liệu.</b><br>' + esc(e.message) +
-        '<br>Nếu thiếu trang tính, chạy mục 1 Tạo khung trang tính trong menu Bao cao tuan.</div>';
+        '<div class="loi-tai"><b>ไม่สามารถอ่านข้อมูลได้</b><br>' + esc(e.message) +
+        '<br>หากยังไม่มีชีต ให้เรียกเมนู รายงานประจำสัปดาห์ → 1. สร้างโครงสร้างชีต</div>';
     })
     .layDuLieuBangDieuKhien();
 }
@@ -167,13 +167,13 @@ function esc(s){
   return String(s===null||s===undefined?'':s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function soTien(n){ return Number(n||0).toLocaleString('vi-VN') + ' đ'; }
+function soTien(n){ return '฿' + Number(n||0).toLocaleString('th-TH'); }
 
 function ve(d){
-  document.getElementById('capNhat').textContent = 'cập nhật ' + d.capNhatLuc;
+  document.getElementById('capNhat').textContent = 'อัปเดต ' + d.capNhatLuc;
   document.getElementById('moTaKy').textContent =
-    'Kỳ báo cáo ' + d.ky.ma + ', từ ' + d.ky.tuNgay + ' đến ' + d.ky.denNgay +
-    '. Mã tính toàn bộ con số, AI chỉ viết nhận xét, không báo cáo nào được gửi khi chưa có người duyệt.';
+    'รอบรายงาน ' + d.ky.ma + ' ตั้งแต่ ' + d.ky.tuNgay + ' ถึง ' + d.ky.denNgay +
+    ' โค้ดคำนวณตัวเลขทั้งหมด AI เขียนเฉพาะความคิดเห็น และจะไม่ส่งรายงานก่อนผู้จัดการอนุมัติ';
   var h = '';
 
   h += '<div class="kpi">';
@@ -192,8 +192,8 @@ function ve(d){
     h += '</div>';
   }
 
-  h += '<section><div class="tieu-de-khoi"><h2>Việc tiếp theo</h2>' +
-       '<div class="nguon">kỳ ' + esc(d.ky.ma) + '</div></div>' +
+  h += '<section><div class="tieu-de-khoi"><h2>ขั้นตอนถัดไป</h2>' +
+       '<div class="nguon">รอบ ' + esc(d.ky.ma) + '</div></div>' +
        '<div class="the viec"><div class="n">' + esc(d.viecTiepTheo.viec) + '</div>';
   if(d.viecTiepTheo.hanhDong){
     h += '<button id="nutChay" onclick="chay(\'' + esc(d.viecTiepTheo.hanhDong) + '\')">' +
@@ -201,30 +201,30 @@ function ve(d){
   }
   h += '<div id="kqChay"></div></div></section>';
 
-  h += '<section><div class="tieu-de-khoi"><h2>Kiểm tra dữ liệu</h2>' +
-       '<div class="nguon">trang DU_LIEU_NGAY</div>' +
-       '<div class="ghi">' + d.duLieu.soDong + ' dòng trong kỳ</div></div><div class="the">';
+  h += '<section><div class="tieu-de-khoi"><h2>ตรวจสอบข้อมูล</h2>' +
+       '<div class="nguon">ชีต ข้อมูลรายวัน</div>' +
+       '<div class="ghi">' + d.duLieu.soDong + ' แถวในรอบ</div></div><div class="the">';
   if(d.duLieu.dat){
-    h += '<div class="dat">Dữ liệu đạt. Tỷ lệ ô bắt buộc còn trống ' + d.duLieu.tyLeTrong + ' phần trăm.' +
-         (d.duLieu.ngoaiKy ? ' Bỏ qua ' + d.duLieu.ngoaiKy + ' dòng thuộc kỳ khác.' : '') + '</div>';
+    h += '<div class="dat">ข้อมูลผ่านการตรวจสอบ ช่องบังคับว่าง ' + d.duLieu.tyLeTrong + '%' +
+         (d.duLieu.ngoaiKy ? ' ข้ามข้อมูลจากรอบอื่น ' + d.duLieu.ngoaiKy + ' แถว' : '') + '</div>';
   } else {
-    h += '<div class="loi"><b>' + d.duLieu.tongLoi + ' lỗi phải sửa trước khi tính chỉ số</b><ul>';
+    h += '<div class="loi"><b>ต้องแก้ข้อผิดพลาด ' + d.duLieu.tongLoi + ' รายการก่อนคำนวณ</b><ul>';
     d.duLieu.loi.forEach(function(l){ h += '<li>' + esc(l) + '</li>'; });
     if(d.duLieu.tongLoi > d.duLieu.loi.length){
-      h += '<li>… còn ' + (d.duLieu.tongLoi - d.duLieu.loi.length) + ' lỗi nữa, xem NHAT_KY_HE_THONG.</li>';
+      h += '<li>… ยังมีอีก ' + (d.duLieu.tongLoi - d.duLieu.loi.length) + ' รายการ โปรดดูชีต บันทึกระบบ</li>';
     }
     h += '</ul></div>';
   }
   h += '</div></section>';
 
-  h += '<section><div class="tieu-de-khoi"><h2>Chỉ số tuần</h2>' +
-       '<div class="nguon">trang CHI_SO_TUAN</div></div>';
+  h += '<section><div class="tieu-de-khoi"><h2>ตัวชี้วัดรายสัปดาห์</h2>' +
+       '<div class="nguon">ชีต ตัวชี้วัดรายสัปดาห์</div></div>';
   if(!d.chiSo){
-    h += '<div class="rong">Chưa có chỉ số cho kỳ này. Mục 3 Tính chỉ số tuần sẽ đổ dữ liệu vào khối này.</div>';
+    h += '<div class="rong">ยังไม่มีตัวชี้วัดสำหรับรอบนี้ เรียกเมนู 3 เพื่อคำนวณและแสดงข้อมูลในส่วนนี้</div>';
   } else {
     h += '<div class="the"><table class="chiso">';
     d.chiSo.forEach(function(c){
-      var gt = c.dai ? esc(c.gt) : (typeof c.gt === 'number' ? c.gt.toLocaleString('vi-VN') : esc(c.gt));
+      var gt = c.dai ? esc(c.gt) : (typeof c.gt === 'number' ? c.gt.toLocaleString('th-TH') : esc(c.gt));
       h += '<tr><td class="ten">' + esc(c.ten) + '</td>' +
            '<td class="gt' + (c.dai ? ' dai' : '') + '">' + gt + esc(c.donVi) + '</td></tr>';
     });
@@ -232,29 +232,29 @@ function ve(d){
   }
   h += '</section>';
 
-  h += '<section><div class="tieu-de-khoi"><h2>Báo cáo</h2>' +
-       '<div class="nguon">trang BAO_CAO_AI</div></div>';
+  h += '<section><div class="tieu-de-khoi"><h2>รายงาน</h2>' +
+       '<div class="nguon">ชีต รายงาน AI</div></div>';
   if(!d.baoCao){
-    h += '<div class="rong">Chưa có báo cáo cho kỳ này. Mục 4 Tạo nhận xét bằng AI sẽ đổ dữ liệu vào khối này.</div>';
+    h += '<div class="rong">ยังไม่มีรายงานสำหรับรอบนี้ เรียกเมนู 4 เพื่อสร้างร่างความคิดเห็นด้วย AI</div>';
   } else {
     h += '<div class="the bc"><div style="margin-bottom:12px"><span style="font-family:var(--mono);font-size:12px">' +
          esc(d.baoCao.ma) + '</span><span class="nhan-tt tt-' + esc(d.baoCao.trangThai) + '">' +
-         esc(d.baoCao.trangThai) + '</span>' +
-         (d.baoCao.nguoiDuyet ? '<span style="font-size:12px;color:var(--nhan);margin-left:10px">người duyệt: ' + esc(d.baoCao.nguoiDuyet) + '</span>' : '') +
+         esc(d.baoCao.trangThaiHienThi) + '</span>' +
+         (d.baoCao.nguoiDuyet ? '<span style="font-size:12px;color:var(--nhan);margin-left:10px">ผู้อนุมัติ: ' + esc(d.baoCao.nguoiDuyet) + '</span>' : '') +
          '</div>';
     if(d.baoCao.trangThai === 'LOI'){
-      h += '<h4>Nguyên văn phản hồi lỗi</h4><p>' + esc(d.baoCao.jsonTho.slice(0,1500)) + '</p>';
+      h += '<h4>คำตอบดิบที่เกิดข้อผิดพลาด</h4><p>' + esc(d.baoCao.jsonTho.slice(0,1500)) + '</p>';
     } else {
-      h += '<h4>Tổng quan</h4><p>' + esc(d.baoCao.tongQuan) + '</p>' +
-           '<h4>Cảnh báo</h4><p>' + esc(d.baoCao.canhBao) + '</p>' +
-           '<h4>Hành động đề xuất</h4><p>' + esc(d.baoCao.hanhDong) + '</p>' +
-           '<h4>Câu hỏi cho quản lý</h4><p>' + esc(d.baoCao.cauHoi) + '</p>';
+      h += '<h4>ภาพรวม</h4><p>' + esc(d.baoCao.tongQuan) + '</p>' +
+           '<h4>คำเตือน</h4><p>' + esc(d.baoCao.canhBao) + '</p>' +
+           '<h4>การดำเนินการที่แนะนำ</h4><p>' + esc(d.baoCao.hanhDong) + '</p>' +
+           '<h4>คำถามสำหรับผู้จัดการ</h4><p>' + esc(d.baoCao.cauHoi) + '</p>';
       if(d.baoCao.trangThai === 'CHO_DUYET'){
-        h += '<div class="duyet"><label for="oDuyet">Người duyệt</label>' +
-             '<input id="oDuyet" type="text" placeholder="gõ tên bạn rồi bấm Duyệt">' +
-             '<button onclick="duyet(\'' + esc(d.baoCao.ma) + '\')">Duyệt báo cáo</button>' +
-             '<div class="ghi-chu-duyet">Duyệt là xác nhận bạn đã đọc và chịu trách nhiệm về nội dung. ' +
-             'Muốn sửa câu chữ thì mở trang BAO_CAO_AI sửa trước rồi quay lại duyệt.</div>' +
+        h += '<div class="duyet"><label for="oDuyet">ผู้อนุมัติ</label>' +
+             '<input id="oDuyet" type="text" placeholder="กรอกชื่อแล้วกดอนุมัติ">' +
+             '<button onclick="duyet(\'' + esc(d.baoCao.ma) + '\')">อนุมัติรายงาน</button>' +
+             '<div class="ghi-chu-duyet">การอนุมัติหมายถึงคุณอ่านและรับผิดชอบต่อเนื้อหาแล้ว ' +
+             'หากต้องแก้ข้อความ ให้แก้ในชีต รายงาน AI ก่อนแล้วจึงกลับมาอนุมัติ</div>' +
              '<div id="kqDuyet"></div></div>';
       }
     }
@@ -262,28 +262,28 @@ function ve(d){
   }
   h += '</section>';
 
-  h += '<section><div class="tieu-de-khoi"><h2>Bảng chỉ nhắc, không làm thay</h2></div>' +
+  h += '<section><div class="tieu-de-khoi"><h2>ระบบช่วยเตือน แต่ไม่ตัดสินใจแทน</h2></div>' +
        '<div class="the nhac"><ul>';
   d.nhacNho.forEach(function(n){
     h += '<li><b>' + esc(n.viec) + '</b> — <span>' + esc(n.vi) + '</span></li>';
   });
   h += '</ul></div></section>';
 
-  h += '<section><div class="tieu-de-khoi"><h2>Nguồn dữ liệu</h2>' +
+  h += '<section><div class="tieu-de-khoi"><h2>แหล่งข้อมูล</h2>' +
        '<div class="nguon">' + esc(d.nguon.noi) + '</div></div>' +
        '<div class="the cai-dat">' +
-       '<div><label for="oFile">Đường dẫn tệp dữ liệu của khách</label>' +
-       '<input id="oFile" type="text" value="' + esc(d.nguon.id) + '" placeholder="dán đường dẫn tệp Google Sheets của khách"></div>' +
-       '<button onclick="luuFile()">Nối tệp</button>' +
+       '<div><label for="oFile">ลิงก์ไฟล์ข้อมูลของลูกค้า</label>' +
+       '<input id="oFile" type="text" value="' + esc(d.nguon.id) + '" placeholder="วางลิงก์ Google Sheets ของลูกค้า"></div>' +
+       '<button onclick="luuFile()">เชื่อมไฟล์</button>' +
        '<div class="chu-thich">' + esc(d.nguon.chu) + '</div></div><div id="kqFile"></div></section>';
 
-  h += '<section><div class="tieu-de-khoi"><h2>Cài đặt</h2><div class="nguon">script properties</div></div>' +
+  h += '<section><div class="tieu-de-khoi"><h2>การตั้งค่า</h2><div class="nguon">Script Properties</div></div>' +
        '<div class="the cai-dat">' +
-       '<div><label for="oKhoa">Khóa OPENAI_API_KEY</label>' +
-       '<input id="oKhoa" type="password" placeholder="dán khóa rồi bấm Lưu khóa" autocomplete="off"></div>' +
-       '<button onclick="luuKhoa()">Lưu khóa</button>' +
-       '<div class="chu-thich">Khóa lưu vào Script Properties của dự án, không ghi vào bảng tính và không nằm trong mã. ' +
-       'Lưu xong chạy mục 6 Kiểm tra kết nối API.</div></div><div id="kqKhoa"></div></section>';
+       '<div><label for="oKhoa">OPENAI_API_KEY</label>' +
+       '<input id="oKhoa" type="password" placeholder="วางคีย์แล้วกดบันทึก" autocomplete="off"></div>' +
+       '<button onclick="luuKhoa()">บันทึกคีย์</button>' +
+       '<div class="chu-thich">คีย์จะบันทึกใน Script Properties ของโปรเจกต์ ไม่เขียนลงสเปรดชีตหรือซอร์สโค้ด ' +
+       'หลังบันทึกให้เรียกเมนู 6 เพื่อตรวจสอบการเชื่อมต่อ</div></div><div id="kqKhoa"></div></section>';
 
   document.getElementById('noiDung').innerHTML = h;
 }
@@ -292,12 +292,12 @@ function chay(hanhDong){
   var nut = document.getElementById('nutChay');
   var kq = document.getElementById('kqChay');
   var nhanCu = nut ? nut.textContent : '';
-  if(nut){ nut.disabled = true; nut.textContent = 'Đang chạy…'; }
-  kq.textContent = 'Đang gửi lệnh sang bảng tính…';
+  if(nut){ nut.disabled = true; nut.textContent = 'กำลังทำงาน…'; }
+  kq.textContent = 'กำลังส่งคำสั่งไปยังสเปรดชีต…';
   google.script.run
     .withSuccessHandler(function(r){ kq.textContent = r; setTimeout(tai, 1600); })
     .withFailureHandler(function(e){
-      kq.textContent = 'Lỗi: ' + e.message;
+      kq.textContent = 'ข้อผิดพลาด: ' + e.message;
       if(nut){ nut.disabled = false; nut.textContent = nhanCu; }
     })
     .chayHanhDong(hanhDong);
@@ -306,15 +306,15 @@ function chay(hanhDong){
 function duyet(ma){
   var o = document.getElementById('oDuyet');
   var kq = document.getElementById('kqDuyet');
-  if(!o.value.trim()){ kq.textContent = 'Chưa nhập tên người duyệt.'; return; }
+  if(!o.value.trim()){ kq.textContent = 'ยังไม่ได้กรอกชื่อผู้อนุมัติ'; return; }
   var nut = o.parentNode.querySelector('button');
-  nut.disabled = true; nut.textContent = 'Đang duyệt…';
+  nut.disabled = true; nut.textContent = 'กำลังอนุมัติ…';
   kq.textContent = '';
   google.script.run
     .withSuccessHandler(function(r){ kq.textContent = r; setTimeout(tai, 1500); })
     .withFailureHandler(function(e){
-      kq.textContent = 'Lỗi: ' + e.message;
-      nut.disabled = false; nut.textContent = 'Duyệt báo cáo';
+      kq.textContent = 'ข้อผิดพลาด: ' + e.message;
+      nut.disabled = false; nut.textContent = 'อนุมัติรายงาน';
     })
     .duyetBaoCao(ma, o.value.trim());
 }
@@ -322,21 +322,21 @@ function duyet(ma){
 function luuFile(){
   var o = document.getElementById('oFile');
   var kq = document.getElementById('kqFile');
-  kq.textContent = 'Đang kiểm tra tệp…';
+  kq.textContent = 'กำลังตรวจสอบไฟล์…';
   google.script.run
     .withSuccessHandler(function(r){ kq.textContent = r; setTimeout(tai, 1600); })
-    .withFailureHandler(function(e){ kq.textContent = 'Lỗi: ' + e.message; })
+    .withFailureHandler(function(e){ kq.textContent = 'ข้อผิดพลาด: ' + e.message; })
     .luuFileKhach(o.value.trim());
 }
 
 function luuKhoa(){
   var o = document.getElementById('oKhoa');
   var kq = document.getElementById('kqKhoa');
-  if(!o.value.trim()){ kq.textContent = 'Chưa nhập khóa.'; return; }
-  kq.textContent = 'Đang lưu…';
+  if(!o.value.trim()){ kq.textContent = 'ยังไม่ได้กรอก API key'; return; }
+  kq.textContent = 'กำลังบันทึก…';
   google.script.run
     .withSuccessHandler(function(r){ kq.textContent = r; o.value=''; setTimeout(tai, 1400); })
-    .withFailureHandler(function(e){ kq.textContent = 'Lỗi: ' + e.message; })
+    .withFailureHandler(function(e){ kq.textContent = 'ข้อผิดพลาด: ' + e.message; })
     .luuKhoaAPI(o.value.trim());
 }
 
