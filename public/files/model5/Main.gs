@@ -308,16 +308,16 @@ function onOpen() {
 }
 function ui_() { return SpreadsheetApp.getUi(); }
 var DASHBOARD_STATE = { capturing: false, messages: [] };
-function notify_(td, nd) {
+function notify_(td, messageText) {
     if (DASHBOARD_STATE.capturing) {
-        DASHBOARD_STATE.messages.push(td + ": " + nd);
+        DASHBOARD_STATE.messages.push(td + ": " + messageText);
         return;
     }
     try {
-        ui_().alert(td, nd, ui_().ButtonSet.OK);
+        ui_().alert(td, messageText, ui_().ButtonSet.OK);
     }
     catch (e) {
-        console.log(td + ": " + nd);
+        console.log(td + ": " + messageText);
     }
 }
 function isAutomaticRun_() { try {
@@ -345,13 +345,13 @@ function getColumns_(sheet) {
 }
 function getColumnIndex(sheet, name) { return getColumns_(sheet).indexOf(name) + 1; }
 function getFirstEmptyRow_(sheet) {
-    var het = sheet.getMaxRows();
-    var cot1 = sheet.getRange(1, 1, het, 1).getValues();
-    for (var i = 1; i < cot1.length; i++) {
-        if (String(cot1[i][0]).trim() === "")
+    var maxRows = sheet.getMaxRows();
+    var firstColumnValues = sheet.getRange(1, 1, maxRows, 1).getValues();
+    for (var i = 1; i < firstColumnValues.length; i++) {
+        if (String(firstColumnValues[i][0]).trim() === "")
             return i + 1;
     }
-    return het + 1;
+    return maxRows + 1;
 }
 function readTable_(sheet) {
     var head = getColumns_(sheet);
@@ -428,12 +428,12 @@ function getFormulaSeparator_() {
         return existing;
     var s = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
     var o = s.getRange(s.getMaxRows(), s.getMaxColumns());
-    var cu = o.getFormula();
+    var previousFormula = o.getFormula();
     o.setFormula("=IF(1=1,1,2)");
     SpreadsheetApp.flush();
     var separator = String(o.getDisplayValue()).indexOf("#ERROR") > -1 ? ";" : ",";
-    if (cu)
-        o.setFormula(cu);
+    if (previousFormula)
+        o.setFormula(previousFormula);
     else
         o.clearContent();
     p.setProperty("FORMULA_SEPARATOR", separator);
@@ -471,20 +471,20 @@ function getField_(o, name) {
 }
 function parseJson_(s) {
     var t = String(s).replace(/```json|```/g, "").trim();
-    var iMoc = t.indexOf("{"), iVuong = t.indexOf("[");
-    var moc, row;
-    if (iMoc === -1 && iVuong === -1) {
+    var objectStartIndex = t.indexOf("{"), arrayStartIndex = t.indexOf("[");
+    var boundary, row;
+    if (objectStartIndex === -1 && arrayStartIndex === -1) {
         throw new Error("คำตอบจาก AI ไม่มีข้อมูล JSON: " + t.substring(0, 300));
     }
-    if (iVuong === -1 || (iMoc > -1 && iMoc < iVuong)) {
-        moc = "{";
+    if (arrayStartIndex === -1 || (objectStartIndex > -1 && objectStartIndex < arrayStartIndex)) {
+        boundary = "{";
         row = "}";
     }
     else {
-        moc = "[";
+        boundary = "[";
         row = "]";
     }
-    var d = t.indexOf(moc);
+    var d = t.indexOf(boundary);
     var c = t.lastIndexOf(row);
     if (d === -1 || c === -1 || c < d) {
         throw new Error("คำตอบจาก AI ไม่มีข้อมูล JSON ที่สมบูรณ์: " + t.substring(0, 300));
@@ -493,15 +493,15 @@ function parseJson_(s) {
         return JSON.parse(t.substring(d, c + 1));
     }
     catch (e) {
-        var sau = 0, insideString = false, thoat = false;
+        var depth = 0, insideString = false, escaped = false;
         for (var i = d; i < t.length; i++) {
             var ch = t.charAt(i);
-            if (thoat) {
-                thoat = false;
+            if (escaped) {
+                escaped = false;
                 continue;
             }
             if (ch === "\\") {
-                thoat = true;
+                escaped = true;
                 continue;
             }
             if (ch === "\"") {
@@ -510,11 +510,11 @@ function parseJson_(s) {
             }
             if (insideString)
                 continue;
-            if (ch === moc)
-                sau++;
+            if (ch === boundary)
+                depth++;
             else if (ch === row) {
-                sau--;
-                if (sau === 0)
+                depth--;
+                if (depth === 0)
                     return JSON.parse(t.substring(d, i + 1));
             }
         }
@@ -596,7 +596,7 @@ function setupSystem() {
 }
 function dedupeConfig_() {
     var s = getSheet_("CONFIG"), notices = [];
-    var d = readTable_(s), existingByKey = {}, trung = 0;
+    var d = readTable_(s), existingByKey = {}, duplicates = 0;
     d.rows.forEach(function (r) {
         var k = String(r[0]).trim();
         if (!k)
@@ -604,11 +604,11 @@ function dedupeConfig_() {
         var v = String(r[1]).trim();
         if (!existingByKey.hasOwnProperty(k) || (!existingByKey[k] && v)) {
             if (existingByKey.hasOwnProperty(k))
-                trung++;
+                duplicates++;
             existingByKey[k] = v;
         }
         else {
-            trung++;
+            duplicates++;
         }
     });
     var rows = DEFAULT_CONFIG.map(function (k) {
@@ -626,7 +626,7 @@ function dedupeConfig_() {
     s.getRange(2, 1, rows.length, 3).setValues(rows);
     if (s.getMaxColumns() > 3)
         s.getRange(1, 4, s.getMaxRows(), s.getMaxColumns() - 3).clearContent();
-    notices.push("จัดระเบียบการตั้งค่า " + rows.length + " รายการ" + (trung ? " และลบรายการซ้ำ " + trung + " รายการ" : ""));
+    notices.push("จัดระเบียบการตั้งค่า " + rows.length + " รายการ" + (duplicates ? " และลบรายการซ้ำ " + duplicates + " รายการ" : ""));
     return notices;
 }
 function seedDefaults_() {
@@ -754,39 +754,39 @@ function countFiles_(f) {
     }
     return n;
 }
-function getUsableChildFolders_(cha, name) {
-    var it = cha.getFoldersByName(name), ds = [];
+function getUsableChildFolders_(parentFolder, name) {
+    var it = parentFolder.getFoldersByName(name), items = [];
     while (it.hasNext()) {
         var f = it.next();
         if (!f.isTrashed())
-            ds.push(f);
+            items.push(f);
     }
-    return ds;
+    return items;
 }
 function findUsableFoldersInDrive_(name) {
-    var it = DriveApp.getFoldersByName(name), ds = [];
+    var it = DriveApp.getFoldersByName(name), items = [];
     while (it.hasNext()) {
         var f = it.next();
         if (!f.isTrashed())
-            ds.push(f);
+            items.push(f);
     }
-    return ds;
+    return items;
 }
 function createFolderStructure() {
     var notices = [];
-    var goc, dsGoc = getUsableChildFolders_(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
+    var rootFolder, dsGoc = getUsableChildFolders_(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
     if (dsGoc.length) {
-        goc = dsGoc[0];
+        rootFolder = dsGoc[0];
         notices.push("ใช้โฟลเดอร์หลักเดิม " + ROOT_FOLDER_NAME);
         if (dsGoc.length > 1) {
             notices.push("คำเตือน: พบโฟลเดอร์หลักชื่อเดียวกัน " + dsGoc.length + " โฟลเดอร์ ระบบจะใช้โฟลเดอร์แรก");
         }
     }
     else {
-        goc = DriveApp.getRootFolder().createFolder(ROOT_FOLDER_NAME);
+        rootFolder = DriveApp.getRootFolder().createFolder(ROOT_FOLDER_NAME);
         notices.push("สร้างโฟลเดอร์หลักใหม่ " + ROOT_FOLDER_NAME);
     }
-    setConfig("ROOT_FOLDER_ID", goc.getId());
+    setConfig("ROOT_FOLDER_ID", rootFolder.getId());
     var pendingItems = [["DATA_INBOX", "DATA_INBOX_FOLDER_ID"],
         ["ORDER_INBOX", "ORDER_INBOX_FOLDER_ID"],
         ["SUPPLIER_FILES", "SUPPLIER_FILES_FOLDER_ID"]];
@@ -794,7 +794,7 @@ function createFolderStructure() {
         var name = d[0], f;
         notices.push("");
         notices.push("--- " + name + " ---");
-        var insideRoot = getUsableChildFolders_(goc, name);
+        var insideRoot = getUsableChildFolders_(rootFolder, name);
         if (insideRoot.length) {
             f = insideRoot[0];
             notices.push("ใช้โฟลเดอร์เดิมภายใน " + ROOT_FOLDER_NAME +
@@ -808,7 +808,7 @@ function createFolderStructure() {
             if (ngoai.length === 1) {
                 f = ngoai[0];
                 try {
-                    f.moveTo(goc);
+                    f.moveTo(rootFolder);
                     notices.push("ย้ายโฟลเดอร์เดิมเข้า " + ROOT_FOLDER_NAME +
                         " (คงไว้ทั้งหมด " + countFiles_(f) + " ไฟล์)");
                 }
@@ -817,7 +817,7 @@ function createFolderStructure() {
                 }
             }
             else if (ngoai.length > 1) {
-                f = goc.createFolder(name);
+                f = rootFolder.createFolder(name);
                 notices.push("สร้างโฟลเดอร์ใหม่ เพราะพบโฟลเดอร์ชื่อนี้ " + ngoai.length +
                     " แห่งในไดรฟ์และไม่สามารถเลือกแทนผู้ใช้ได้");
                 notices.push("โฟลเดอร์เดิมที่พบ:");
@@ -827,7 +827,7 @@ function createFolderStructure() {
                 notices.push("โปรดตรวจสอบและย้ายไฟล์ที่ต้องการมาไว้ในโฟลเดอร์ใหม่");
             }
             else {
-                f = goc.createFolder(name);
+                f = rootFolder.createFolder(name);
                 notices.push("สร้างโฟลเดอร์ใหม่");
             }
         }
@@ -836,7 +836,7 @@ function createFolderStructure() {
         notices.push("ลิงก์: " + f.getUrl());
     });
     notices.push("");
-    notices.push("โฟลเดอร์หลัก: " + goc.getUrl());
+    notices.push("โฟลเดอร์หลัก: " + rootFolder.getUrl());
     notify_("สร้างโครงสร้างโฟลเดอร์", notices.join("\n"));
 }
 function diagnoseFolders() {
@@ -872,9 +872,9 @@ function diagnoseFolders() {
                 needsUpdate++;
             }
         }
-        var trung = findUsableFoldersInDrive_(d[0]);
-        notices.push("จำนวนโฟลเดอร์ชื่อนี้ในไดรฟ์: " + trung.length +
-            (trung.length > 1 ? " — ควรรวมและลบรายการซ้ำ" : ""));
+        var duplicates = findUsableFoldersInDrive_(d[0]);
+        notices.push("จำนวนโฟลเดอร์ชื่อนี้ในไดรฟ์: " + duplicates.length +
+            (duplicates.length > 1 ? " — ควรรวมและลบรายการซ้ำ" : ""));
         notices.push("");
     });
     notices.push(needsUpdate ? "สรุป: พบ " + needsUpdate + " จุดที่ต้องแก้ไข " +
@@ -960,10 +960,10 @@ function getAiText_(data, ncc) {
 }
 function testApiConnection() {
     try {
-        var kq = callAi("ตอบกลับเป็นภาษาไทยสั้นๆ เท่านั้น", "ตอบข้อความว่า: เชื่อมต่อสำเร็จ");
+        var aiResult = callAi("ตอบกลับเป็นภาษาไทยสั้นๆ เท่านั้น", "ตอบข้อความว่า: เชื่อมต่อสำเร็จ");
         notify_("การเชื่อมต่อ API ใช้งานได้", "ผู้จัดหา:" + getConfig("AI_PROVIDER") +
             "\nโมเดล: " + getConfig("AI_MODEL") +
-            "\nคำตอบทดสอบ: " + kq.text);
+            "\nคำตอบทดสอบ: " + aiResult.text);
     }
     catch (e) {
         notify_("การเชื่อมต่อ API ไม่ทำงาน", String(e.message));
@@ -1087,7 +1087,7 @@ function step03GroupDemand() {
         notify_("จัดกลุ่มความต้องการ", "ยังไม่มีข้อมูลให้จัดกลุ่ม");
         return;
     }
-    var lo = parseInt(getConfig("CLASSIFICATION_BATCH_SIZE"), 10) || 40;
+    var batchCode = parseInt(getConfig("CLASSIFICATION_BATCH_SIZE"), 10) || 40;
     var pendingItems = [];
     d.rows.forEach(function (r, i) {
         var textValue = String(r[cVan - 1]).trim();
@@ -1099,11 +1099,11 @@ function step03GroupDemand() {
         return;
     }
     var xong = 0;
-    for (var b = 0; b < pendingItems.length; b += lo) {
-        var batch = pendingItems.slice(b, b + lo);
+    for (var b = 0; b < pendingItems.length; b += batchCode) {
+        var batch = pendingItems.slice(b, b + batchCode);
         try {
-            var kq = callAi(getConfig("DEMAND_GROUPING_PROMPT"), JSON.stringify(batch));
-            parseJson_(kq.text).forEach(function (o) {
+            var aiResult = callAi(getConfig("DEMAND_GROUPING_PROMPT"), JSON.stringify(batch));
+            parseJson_(aiResult.text).forEach(function (o) {
                 if (o.row_number && o.group) {
                     sheet.getRange(o.row_number, groupColumn).setValue(o.group);
                     xong++;
@@ -1123,8 +1123,8 @@ function step04CreateProductBrief() {
     var dn = readTable_(sN), iLoai = dn.head.indexOf("TYPE"), iPb = dn.head.indexOf("VERSION");
     var existingByKey = dn.rows.filter(function (r) { return String(r[iLoai]).trim() === "ข้อกำหนดสินค้า"; });
     if (existingByKey.length) {
-        var ds = existingByKey.map(function (r) { return String(r[iPb] || "v?"); }).join(", ");
-        notify_("มีข้อกำหนดสินค้าอยู่แล้ว", "พบเนื้อหาประเภท ข้อกำหนดสินค้า " + existingByKey.length + " รายการ (" + ds + ")\n" +
+        var items = existingByKey.map(function (r) { return String(r[iPb] || "v?"); }).join(", ");
+        notify_("มีข้อกำหนดสินค้าอยู่แล้ว", "พบเนื้อหาประเภท ข้อกำหนดสินค้า " + existingByKey.length + " รายการ (" + items + ")\n" +
             "ขั้นตอนที่ 4 จะไม่เรียก API ซ้ำ หากต้องการสร้างเวอร์ชันใหม่ให้ใช้เมนู 4B");
         return;
     }
@@ -1160,11 +1160,11 @@ function createProductBrief_(version) {
         "\nราคาเป้าหมาย: " + getConfig("SELLING_PRICE") +
         "\nข้อมูลความต้องการที่อนุมัติแล้ว:\n" + lieu.slice(0, 150).join("\n");
     try {
-        var kq = callAi(getConfig("PRODUCT_BRIEF_PROMPT"), context);
+        var aiResult = callAi(getConfig("PRODUCT_BRIEF_PROMPT"), context);
         appendRecord_(sN, {
             CONTENT_CODE: createId_(sN, "CONTENT_CODE", "ND-"),
             PRODUCT_CODE: getConfig("PRIMARY_PRODUCT_CODE"), TYPE: "ข้อกำหนดสินค้า",
-            TITLE: "ข้อกำหนดสินค้า " + version, CONTENT_TEXT: stripMarkdown_(kq.text),
+            TITLE: "ข้อกำหนดสินค้า " + version, CONTENT_TEXT: stripMarkdown_(aiResult.text),
             SOURCE_LINK: "ข้อมูลดิบ: " + lieu.length + " รายการที่อนุมัติ",
             STATUS: "ร่างโดย AI", VERSION: version
         });
@@ -1194,15 +1194,15 @@ function step05SendQuoteRequests() {
             "โปรดเปิดชีตเนื้อหา ตรวจสอบรายการประเภท ข้อกำหนดสินค้า แล้วเปลี่ยนสถานะเป็น อนุมัติ");
         return;
     }
-    var tep;
+    var pdfFile;
     try {
-        tep = createProductBriefPdf_(String(source[iNd]), String(source[iMa]), String(source[iPb] || "v1.0"));
+        pdfFile = createProductBriefPdf_(String(source[iNd]), String(source[iMa]), String(source[iPb] || "v1.0"));
     }
     catch (e) {
         notify_("ไม่สามารถสร้าง PDF ได้", String(e.message));
         return;
     }
-    sN.getRange(sourceRow, iLink + 1).setValue(tep.getUrl());
+    sN.getRange(sourceRow, iLink + 1).setValue(pdfFile.getUrl());
     var dc = readTable_(sC);
     var iEmail = dc.head.indexOf("EMAIL"), iDaGui = dc.head.indexOf("QUOTE_REQUEST_SENT");
     var iTen = dc.head.indexOf("NAME"), iHm = dc.head.indexOf("CATEGORY");
@@ -1228,7 +1228,7 @@ function step05SendQuoteRequests() {
                     "หมวดหมู่: " + (dc.rows[k][iHm] || "") + "\n" +
                     "รหัสสินค้า: " + getConfig("PRIMARY_PRODUCT_CODE") + "\n\n" +
                     "ขอแสดงความนับถือ,\n" + getConfig("BRAND_NAME"),
-                attachments: [tep.getAs(MimeType.PDF)]
+                attachments: [pdfFile.getAs(MimeType.PDF)]
             });
             sC.getRange(k + 2, sentColumn).setValue("ใช่");
             sC.getRange(k + 2, dateColumn).setValue(today_());
@@ -1238,9 +1238,9 @@ function step05SendQuoteRequests() {
             errors.push(email + ": " + e.message);
         }
     }
-    var messages = "สร้าง PDF ใหม่: " + tep.getName() +
+    var messages = "สร้าง PDF ใหม่: " + pdfFile.getName() +
         "\nเก็บไว้ในโฟลเดอร์ SUPPLIER_FILES และบันทึกลิงก์ในชีตเนื้อหา" +
-        "\nลิงก์: " + tep.getUrl() +
+        "\nลิงก์: " + pdfFile.getUrl() +
         "\nส่งอีเมลแล้ว: " + gui + " ฉบับ" +
         "\nข้ามเพราะไม่มีอีเมล: " + missingEmails +
         "\nข้ามเพราะเคยส่งแล้ว: " + alreadySent;
@@ -1275,13 +1275,13 @@ function createProductBriefPdf_(contentText, contentCode, version) {
     }
     var brandName = getConfig("BRAND_NAME") || "สินค้า";
     var name = "PRODUCT_BRIEF_" + productCode + "_" + version + "_" + timestamp_();
-    var doc = DocumentApp.create(name), than = doc.getBody();
-    than.appendParagraph(brandName + " — ข้อกำหนดสินค้า")
+    var doc = DocumentApp.create(name), emailBody = doc.getBody();
+    emailBody.appendParagraph(brandName + " — ข้อกำหนดสินค้า")
         .setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    than.appendParagraph("รหัสเนื้อหา: " + contentCode + " | เวอร์ชัน: " + version +
+    emailBody.appendParagraph("รหัสเนื้อหา: " + contentCode + " | เวอร์ชัน: " + version +
         " | วันที่: " + today_());
-    than.appendHorizontalRule();
-    stripMarkdown_(contentText).split("\n").forEach(function (row) { than.appendParagraph(row); });
+    emailBody.appendHorizontalRule();
+    stripMarkdown_(contentText).split("\n").forEach(function (row) { emailBody.appendParagraph(row); });
     doc.saveAndClose();
     var copy = DriveApp.getFileById(doc.getId());
     var pdf = folder.createFile(copy.getAs(MimeType.PDF)).setName(name + ".pdf");
@@ -1309,11 +1309,11 @@ function step06CreateSampleChecklist() {
         return;
     }
     try {
-        var kq = callAi(getConfig("SAMPLE_CHECK_PROMPT"), String(source[iNd]));
+        var aiResult = callAi(getConfig("SAMPLE_CHECK_PROMPT"), String(source[iNd]));
         appendRecord_(sN, {
             CONTENT_CODE: createId_(sN, "CONTENT_CODE", "ND-"),
             PRODUCT_CODE: getConfig("PRIMARY_PRODUCT_CODE"), TYPE: "รายการตรวจตัวอย่าง",
-            TITLE: "รายการตรวจตัวอย่างสินค้า", CONTENT_TEXT: stripMarkdown_(kq.text),
+            TITLE: "รายการตรวจตัวอย่างสินค้า", CONTENT_TEXT: stripMarkdown_(aiResult.text),
             SOURCE_LINK: String(source[iMa]), STATUS: "ร่างโดย AI", VERSION: "v1.0"
         });
         notify_("สร้างรายการตรวจตัวอย่าง", "เพิ่มรายการตรวจตัวอย่างในชีตเนื้อหาแล้ว โปรดตรวจสอบก่อนเปลี่ยนสถานะเป็น อนุมัติ\n" +
@@ -1328,9 +1328,9 @@ function createProductRow_(source, head) {
     var productCode = getConfig("PRIMARY_PRODUCT_CODE");
     if (!productCode)
         return "ข้ามการสร้างแถวสินค้า เพราะยังไม่ได้กำหนด PRIMARY_PRODUCT_CODE";
-    var ds = readTable_(sS), iMa = ds.head.indexOf("PRODUCT_CODE");
-    for (var i = 0; i < ds.rows.length; i++) {
-        if (String(ds.rows[i][iMa]).trim() === productCode)
+    var items = readTable_(sS), iMa = items.head.indexOf("PRODUCT_CODE");
+    for (var i = 0; i < items.rows.length; i++) {
+        if (String(items.rows[i][iMa]).trim() === productCode)
             return "มีสินค้า " + productCode + " อยู่ในชีตสินค้าแล้ว";
     }
     var iNd = head.indexOf("CONTENT_TEXT"), iPb = head.indexOf("VERSION");
@@ -1350,8 +1350,8 @@ function createProductRow_(source, head) {
         SELLING_PRICE: sellingPrice ? Number(sellingPrice) : "", LANDED_COST: landedCost ? Number(landedCost) : "",
         BATCH_CODE: "", SAMPLE_STATUS: "รออนุมัติ", SAMPLE_APPROVAL_DATE: ""
     });
-    var dt = readTable_(sT), iMaT = dt.head.indexOf("PRODUCT_CODE"), hasInventory = false;
-    dt.rows.forEach(function (r) { if (String(r[iMaT]).trim() === productCode)
+    var dataTable = readTable_(sT), iMaT = dataTable.head.indexOf("PRODUCT_CODE"), hasInventory = false;
+    dataTable.rows.forEach(function (r) { if (String(r[iMaT]).trim() === productCode)
         hasInventory = true; });
     if (!hasInventory) {
         var r = appendRecord_(sT, {
@@ -1384,8 +1384,8 @@ function step07CreateSalesContent() {
         return;
     }
     try {
-        var kq = callAi(getConfig("SALES_CONTENT_PROMPT"), String(source[iNd]));
-        var batch = stripMarkdown_(kq.text).split(/\n-{3,}\n/);
+        var aiResult = callAi(getConfig("SALES_CONTENT_PROMPT"), String(source[iNd]));
+        var batch = stripMarkdown_(aiResult.text).split(/\n-{3,}\n/);
         var name = ["คำอธิบายสินค้า", "คำถามที่พบบ่อย", "สคริปต์วิดีโอ"];
         var countMatching = 0;
         for (var i = 0; i < batch.length && i < 3; i++) {
@@ -1477,23 +1477,23 @@ function step09ValidateOrders() {
         notify_("ตรวจสอบคำสั่งซื้อ", "ยังไม่มีคำสั่งซื้อให้ตรวจสอบ");
         return;
     }
-    var ds = readTable_(sS), iMaSp = ds.head.indexOf("PRODUCT_CODE"), validProducts = {};
-    ds.rows.forEach(function (r) { if (r[iMaSp])
+    var items = readTable_(sS), iMaSp = items.head.indexOf("PRODUCT_CODE"), validProducts = {};
+    items.rows.forEach(function (r) { if (r[iMaSp])
         validProducts[String(r[iMaSp]).trim()] = true; });
     if (!Object.keys(validProducts).length) {
         notify_("ยังตรวจสอบคำสั่งซื้อไม่ได้", "ยังไม่มีข้อมูลสินค้า โปรดดำเนินการขั้นตอนที่ 6 ก่อน");
         return;
     }
-    var dt = readTable_(sT), ton = {};
-    var iMaT = dt.head.indexOf("PRODUCT_CODE"), iCo = dt.head.indexOf("AVAILABLE_STOCK");
-    dt.rows.forEach(function (r) {
+    var dataTable = readTable_(sT), ton = {};
+    var iMaT = dataTable.head.indexOf("PRODUCT_CODE"), iCo = dataTable.head.indexOf("AVAILABLE_STOCK");
+    dataTable.rows.forEach(function (r) {
         if (r[iMaT])
             ton[String(r[iMaT]).trim()] = Number(r[iCo]) || 0;
     });
     var c = {};
     ["ORDER_CODE", "PRODUCT_CODE", "QUANTITY", "CUSTOMER_NAME", "PHONE_NUMBER", "ADDRESS", "STATUS", "NOTES"]
         .forEach(function (t) { c[t] = getColumnIndex(sD, t); });
-    var thay = {}, ok = 0, errors = 0, boQua = 0;
+    var updateMap = {}, ok = 0, errors = 0, skipped = 0;
     var statusColumn = [], notesColumn = [];
     for (var i = 0; i < dd.rows.length; i++) {
         var r = dd.rows[i], ls = [];
@@ -1503,14 +1503,14 @@ function step09ValidateOrders() {
         if (!orderCode ||
             ["ส่งคลังแล้ว", "กำลังจัดส่ง", "จัดส่งสำเร็จ", "ยกเลิก", "คืนสินค้า", "กระทบยอดแล้ว"].indexOf(tt) > -1) {
             if (orderCode)
-                boQua++;
+                skipped++;
             statusColumn.push([tt]);
             notesColumn.push([gc]);
             continue;
         }
-        if (thay[orderCode])
+        if (updateMap[orderCode])
             ls.push("รหัสคำสั่งซื้อซ้ำ");
-        thay[orderCode] = true;
+        updateMap[orderCode] = true;
         var mh = String(r[c.PRODUCT_CODE - 1]).trim();
         if (!mh)
             ls.push("ไม่มีรหัสสินค้า");
@@ -1541,7 +1541,7 @@ function step09ValidateOrders() {
         sD.getRange(2, c.NOTES, notesColumn.length, 1).setValues(notesColumn);
     }
     notify_("ตรวจสอบคำสั่งซื้อ", "พร้อมส่งคลัง: " + ok + " | ต้องแก้ไข: " + errors +
-        (boQua ? " | ข้ามรายการที่ประมวลผลแล้ว: " + boQua : ""));
+        (skipped ? " | ข้ามรายการที่ประมวลผลแล้ว: " + skipped : ""));
 }
 function step10SendToWarehouse() {
     var sD = getSheet_("ORDERS"), sS = getSheet_("PRODUCTS"), sT = getSheet_("INVENTORY");
@@ -1550,10 +1550,10 @@ function step10SendToWarehouse() {
         notify_("ยังไม่ได้ตั้งค่าอีเมลคลังสินค้า", "โปรดกรอก WAREHOUSE_EMAIL ในชีตการตั้งค่า");
         return;
     }
-    var ds = readTable_(sS), lo = {};
-    var iMaSp = ds.head.indexOf("PRODUCT_CODE"), iLo = ds.head.indexOf("BATCH_CODE");
-    ds.rows.forEach(function (r) { if (r[iMaSp])
-        lo[String(r[iMaSp]).trim()] = r[iLo]; });
+    var items = readTable_(sS), batchCode = {};
+    var iMaSp = items.head.indexOf("PRODUCT_CODE"), iLo = items.head.indexOf("BATCH_CODE");
+    items.rows.forEach(function (r) { if (r[iMaSp])
+        batchCode[String(r[iMaSp]).trim()] = r[iLo]; });
     var c = {};
     ["ORDER_CODE", "PRODUCT_CODE", "QUANTITY", "CUSTOMER_NAME", "PHONE_NUMBER", "ADDRESS", "STATUS",
         "WAREHOUSE_SENT_DATE", "BATCH_CODE"].forEach(function (t) { c[t] = getColumnIndex(sD, t); });
@@ -1572,7 +1572,7 @@ function step10SendToWarehouse() {
         return;
     }
     var table = gui.map(function (g) {
-        return [g.code, g.mh, g.sl, g.name, g.sdt, g.dc, lo[g.mh] || ""].join(" | ");
+        return [g.code, g.mh, g.sl, g.name, g.sdt, g.dc, batchCode[g.mh] || ""].join(" | ");
     }).join("\n");
     MailApp.sendEmail(email, "[" + getConfig("BRAND_NAME") + "] รายการจัดส่ง " + today_(), getConfig("WAREHOUSE_EMAIL_TEMPLATE") + "\n\n" +
         "รหัสคำสั่งซื้อ | รหัสสินค้า | จำนวน | ชื่อลูกค้า | โทรศัพท์ | ที่อยู่ | รหัสล็อต\n" + table);
@@ -1580,14 +1580,14 @@ function step10SendToWarehouse() {
     gui.forEach(function (g) {
         sD.getRange(g.row, c.WAREHOUSE_SENT_DATE).setValue(date);
         sD.getRange(g.row, c.STATUS).setValue("ส่งคลังแล้ว");
-        sD.getRange(g.row, c.BATCH_CODE).setValue(lo[g.mh] || "");
+        sD.getRange(g.row, c.BATCH_CODE).setValue(batchCode[g.mh] || "");
     });
     SpreadsheetApp.flush();
     var deductByProduct = {};
     gui.forEach(function (g) { deductByProduct[g.mh] = (deductByProduct[g.mh] || 0) + g.sl; });
-    var dt = readTable_(sT);
-    var iMaT = dt.head.indexOf("PRODUCT_CODE"), availableColumn = getColumnIndex(sT, "AVAILABLE_STOCK"), inTransitColumn = getColumnIndex(sT, "IN_TRANSIT"), dateColumn = getColumnIndex(sT, "UPDATED_DATE");
-    dt.rows.forEach(function (r, i) {
+    var dataTable = readTable_(sT);
+    var iMaT = dataTable.head.indexOf("PRODUCT_CODE"), availableColumn = getColumnIndex(sT, "AVAILABLE_STOCK"), inTransitColumn = getColumnIndex(sT, "IN_TRANSIT"), dateColumn = getColumnIndex(sT, "UPDATED_DATE");
+    dataTable.rows.forEach(function (r, i) {
         var mh = String(r[iMaT]).trim();
         if (!deductByProduct[mh])
             return;
@@ -1610,8 +1610,8 @@ function step11InventoryAlerts() {
             notify_("ข้อผิดพลาด", e.message);
         return;
     }
-    var moc = new Date();
-    moc.setDate(moc.getDate() - 14);
+    var boundary = new Date();
+    boundary.setDate(boundary.getDate() - 14);
     var dd = readTable_(sD), salesByProduct = {};
     var iTt = dd.head.indexOf("STATUS"), iMh = dd.head.indexOf("PRODUCT_CODE"), iSl = dd.head.indexOf("QUANTITY"), iNgayGui = dd.head.indexOf("WAREHOUSE_SENT_DATE");
     dd.rows.forEach(function (r) {
@@ -1619,15 +1619,15 @@ function step11InventoryAlerts() {
         if (["ส่งคลังแล้ว", "กำลังจัดส่ง", "จัดส่งสำเร็จ", "กระทบยอดแล้ว"].indexOf(tt) === -1)
             return;
         var n = r[iNgayGui] instanceof Date ? r[iNgayGui] : new Date(String(r[iNgayGui]));
-        if (isNaN(n.getTime()) || n < moc)
+        if (isNaN(n.getTime()) || n < boundary)
             return;
         var mh = String(r[iMh]).trim();
         salesByProduct[mh] = (salesByProduct[mh] || 0) + (Number(r[iSl]) || 0);
     });
-    var dt = readTable_(sT);
-    var iMa = dt.head.indexOf("PRODUCT_CODE"), iCo = dt.head.indexOf("AVAILABLE_STOCK"), iDi = dt.head.indexOf("REORDER_POINT"), iNg = dt.head.indexOf("DAYS_OF_STOCK");
+    var dataTable = readTable_(sT);
+    var iMa = dataTable.head.indexOf("PRODUCT_CODE"), iCo = dataTable.head.indexOf("AVAILABLE_STOCK"), iDi = dataTable.head.indexOf("REORDER_POINT"), iNg = dataTable.head.indexOf("DAYS_OF_STOCK");
     var cTb = getColumnIndex(sT, "AVERAGE_DAILY_SALES");
-    dt.rows.forEach(function (r, i) {
+    dataTable.rows.forEach(function (r, i) {
         var mh = String(r[iMa]).trim();
         if (!mh)
             return;
@@ -1635,7 +1635,7 @@ function step11InventoryAlerts() {
             sT.getRange(i + 2, cTb).setValue(Math.round(salesByProduct[mh] / 14 * 100) / 100);
     });
     SpreadsheetApp.flush();
-    dt = readTable_(sT);
+    dataTable = readTable_(sT);
     var dc = readTable_(sC);
     var iLoai = dc.head.indexOf("ALERT_TYPE"), iMaC = dc.head.indexOf("PRODUCT_CODE"), iNdC = dc.head.indexOf("CONTENT_TEXT"), iXuLy = dc.head.indexOf("RESOLVED");
     var previous = {};
@@ -1649,8 +1649,8 @@ function step11InventoryAlerts() {
         };
     });
     var productionLeadTime = getNumericConfig_("PRODUCTION_LEAD_DAYS");
-    var date = today_(), them = [], boQua = [];
-    dt.rows.forEach(function (r) {
+    var date = today_(), them = [], skipped = [];
+    dataTable.rows.forEach(function (r) {
         var code = String(r[iMa]).trim();
         if (!code)
             return;
@@ -1661,7 +1661,7 @@ function step11InventoryAlerts() {
             return;
         var previousValue = previous[code];
         if (previousValue && !previousValue.processed && previousValue.ton !== null && exists >= previousValue.ton) {
-            boQua.push(code + " (มีการแจ้งเตือนที่ยังไม่ดำเนินการ)");
+            skipped.push(code + " (มีการแจ้งเตือนที่ยังไม่ดำเนินการ)");
             return;
         }
         var daysText = isNaN(days) ? "ไม่ทราบ"
@@ -1678,7 +1678,7 @@ function step11InventoryAlerts() {
     if (!them.length) {
         if (!automaticRun)
             notify_("ตรวจสอบการแจ้งเตือนสต็อก", "อัปเดตยอดขายเฉลี่ยต่อวันจากข้อมูล 14 วันล่าสุดแล้ว " +
-                (boQua.length ? "ไม่สร้างแจ้งเตือนซ้ำสำหรับ: " + boQua.join(", ") +
+                (skipped.length ? "ไม่สร้างแจ้งเตือนซ้ำสำหรับ: " + skipped.join(", ") +
                     "\nหากต้องการรับแจ้งเตือนใหม่ ให้เปลี่ยนสถานะเดิมเป็น ดำเนินการแล้ว"
                     : "ยังไม่มีสินค้าถึงจุดสั่งซื้อใหม่"));
         return;
@@ -1745,24 +1745,24 @@ function step12ClassifySupportEmail() {
         var th = threads[i], msgs = th.getMessages(), msg = msgs[msgs.length - 1];
         var title = th.getFirstMessageSubject();
         try {
-            var kq = callAi(getConfig("SUPPORT_CLASSIFICATION_PROMPT"), "หัวเรื่อง: " + title + "\nเนื้อหา: " + msg.getPlainBody().substring(0, 2000));
-            var o = parseJson_(kq.text);
-            var tomTat = getField_(o, "summary");
+            var aiResult = callAi(getConfig("SUPPORT_CLASSIFICATION_PROMPT"), "หัวเรื่อง: " + title + "\nเนื้อหา: " + msg.getPlainBody().substring(0, 2000));
+            var o = parseJson_(aiResult.text);
+            var summaryText = getField_(o, "summary");
             var group = getField_(o, "request_group");
             var priority = getField_(o, "priority").toUpperCase();
             var missingInfo = getField_(o, "missing_info");
             var replyTemplate = getField_(o, "reply_template");
             var requiresApproval = getField_(o, "requires_human_approval").toUpperCase();
-            var goc = (title + " " + msg.getPlainBody()).toLowerCase();
+            var rootFolder = (title + " " + msg.getPlainBody()).toLowerCase();
             var keywords = ["คืนเงิน", "ขอเงินคืน", "ยกเลิกคำสั่งซื้อ", "ร้องเรียน", "คุณภาพสินค้า",
                 "โฆษณาไม่ตรง", "ความปลอดภัย", "ชดเชย"];
-            if (keywords.some(function (t) { return goc.indexOf(t) > -1; }))
+            if (keywords.some(function (t) { return rootFolder.indexOf(t) > -1; }))
                 requiresApproval = "ใช่";
-            var parsedSuccessfully = tomTat || group || replyTemplate;
+            var parsedSuccessfully = summaryText || group || replyTemplate;
             appendRecord_(sheet, {
                 DATE: today_(), CHANNEL: "EMAIL",
                 REQUEST_GROUP: group, PRIORITY: priority,
-                SUMMARY: parsedSuccessfully ? tomTat : ("อ่านโครงสร้างคำตอบไม่สำเร็จ ข้อความจาก AI: " + kq.text.substring(0, 1500)),
+                SUMMARY: parsedSuccessfully ? summaryText : ("อ่านโครงสร้างคำตอบไม่สำเร็จ ข้อความจาก AI: " + aiResult.text.substring(0, 1500)),
                 MISSING_INFO: missingInfo, REPLY_TEMPLATE: replyTemplate,
                 REQUIRES_HUMAN_APPROVAL: (requiresApproval === "ใช่") ? "ใช่" : "ไม่",
                 ASSIGNEE: getConfig("DEFAULT_ASSIGNEE"), STATUS: "รอดำเนินการ",
@@ -1773,7 +1773,7 @@ function step12ClassifySupportEmail() {
             else
                 errors.push(title + ": AI ไม่ส่งคืนฟิลด์ reply_template จึงไม่ได้สร้างอีเมลร่าง");
             if (requiresApproval === "ใช่") {
-                var kenhXong = notifyApprovalRequired_(title, group, priority, tomTat, th.getPermalink());
+                var kenhXong = notifyApprovalRequired_(title, group, priority, summaryText, th.getPermalink());
                 if (!kenhXong.length) {
                     errors.push(title + ": รายการต้องอนุมัติโดยผู้ดูแลแต่ส่งการแจ้งเตือนไม่สำเร็จ " +
                         "โปรดตรวจสอบ APPROVER_EMAIL และ MANAGER_EMAIL ในชีตการตั้งค่า");
@@ -1796,11 +1796,11 @@ function step12ClassifySupportEmail() {
             (errors.length ? "\nข้อผิดพลาด:\n- " + errors.join("\n- ") : ""));
     }
 }
-function notifyApprovalRequired_(title, group, priority, tomTat, link) {
+function notifyApprovalRequired_(title, group, priority, summaryText, link) {
     return sendOperationsNotice_("ต้องอนุมัติ: " + title, "ระบบจำแนกรายการนี้ว่าต้องให้ผู้ดูแลตัดสินใจ\n" +
         "กลุ่มคำขอ: " + (group || "ไม่ระบุ") + "\n" +
         "ระดับความสำคัญ: " + (priority || "ไม่ระบุ") + "\n\n" +
-        "สรุป:\n" + (tomTat || "ไม่มีสรุป") + "\n\n" +
+        "สรุป:\n" + (summaryText || "ไม่มีสรุป") + "\n\n" +
         "เปิดเธรด: " + link + "\n\n" +
         "โปรดอ่านอีเมลต้นฉบับและอีเมลร่างใน Gmail ระบบยังไม่ได้ตอบลูกค้าอัตโนมัติ", true);
 }
@@ -1830,13 +1830,13 @@ function sendDailySummary() {
     });
     if (!gap.length && !standardItems.length)
         return;
-    var than = "สรุปรายการช่วยเหลือลูกค้าที่ยังไม่ปิด ณ วันที่ " + today_() + "\n\n";
+    var emailBody = "สรุปรายการช่วยเหลือลูกค้าที่ยังไม่ปิด ณ วันที่ " + today_() + "\n\n";
     if (gap.length)
-        than += "ต้องให้ผู้ดูแลอนุมัติ (" + gap.length + "):\n" + gap.join("\n") + "\n\n";
+        emailBody += "ต้องให้ผู้ดูแลอนุมัติ (" + gap.length + "):\n" + gap.join("\n") + "\n\n";
     if (standardItems.length)
-        than += "มีอีเมลร่างจาก AI (" + standardItems.length + "):\n" + standardItems.join("\n") + "\n\n";
-    than += "โปรดตรวจสอบใน Gmail แล้วอัปเดตสถานะเป็น ตอบแล้ว หรือ ปิดแล้ว เพื่อไม่ให้รายการกลับมาในสรุปครั้งถัดไป";
-    sendOperationsNotice_("งานบริการลูกค้าคงค้าง: " + (gap.length + standardItems.length) + " รายการ", than, gap.length > 0);
+        emailBody += "มีอีเมลร่างจาก AI (" + standardItems.length + "):\n" + standardItems.join("\n") + "\n\n";
+    emailBody += "โปรดตรวจสอบใน Gmail แล้วอัปเดตสถานะเป็น ตอบแล้ว หรือ ปิดแล้ว เพื่อไม่ให้รายการกลับมาในสรุปครั้งถัดไป";
+    sendOperationsNotice_("งานบริการลูกค้าคงค้าง: " + (gap.length + standardItems.length) + " รายการ", emailBody, gap.length > 0);
 }
 function step13SummarizeReturns() {
     var automaticRun = isAutomaticRun_(), sH, sC, sD;
@@ -1850,20 +1850,20 @@ function step13SummarizeReturns() {
             notify_("ข้อผิดพลาด", e.message);
         return;
     }
-    var moc = new Date();
-    moc.setDate(moc.getDate() - 7);
+    var boundary = new Date();
+    boundary.setDate(boundary.getDate() - 7);
     var d = readTable_(sH);
     var iNgay = d.head.indexOf("DATE"), iNg = d.head.indexOf("ROOT_CAUSE"), iLo = d.head.indexOf("BATCH_CODE");
     var byRootCause = {}, byBatch = {}, tong = 0;
     d.rows.forEach(function (r) {
         var n = r[iNgay] instanceof Date ? r[iNgay] : new Date(String(r[iNgay]));
-        if (isNaN(n.getTime()) || n < moc)
+        if (isNaN(n.getTime()) || n < boundary)
             return;
         var nn = String(r[iNg]).trim() || "KHAC";
         byRootCause[nn] = (byRootCause[nn] || 0) + 1;
-        var lo = String(r[iLo]).trim();
-        if (lo)
-            byBatch[lo] = (byBatch[lo] || 0) + 1;
+        var batchCode = String(r[iLo]).trim();
+        if (batchCode)
+            byBatch[batchCode] = (byBatch[batchCode] || 0) + 1;
         tong++;
     });
     if (!tong) {
@@ -1886,11 +1886,11 @@ function step13SummarizeReturns() {
                 (tl > rootCauseThreshold ? " — เกินเกณฑ์แจ้งเตือน" : ""), rootCauseThreshold, "ไม่"]);
     });
     var tbLo = tong / Math.max(Object.keys(byBatch).length, 1);
-    Object.keys(byBatch).forEach(function (lo) {
-        if (byBatch[lo] >= tbLo * batchThreshold) {
-            them.push([date, "HOAN_HUY_LO", lo,
-                "ล็อต " + lo + " มีรายการคืนหรือยกเลิก " + byBatch[lo] + " รายการ " +
-                    "สูงกว่าค่าเฉลี่ย " + (byBatch[lo] / tbLo).toFixed(1) + " เท่า — เกินเกณฑ์แจ้งเตือน", batchThreshold, "ไม่"]);
+    Object.keys(byBatch).forEach(function (batchCode) {
+        if (byBatch[batchCode] >= tbLo * batchThreshold) {
+            them.push([date, "HOAN_HUY_LO", batchCode,
+                "ล็อต " + batchCode + " มีรายการคืนหรือยกเลิก " + byBatch[batchCode] + " รายการ " +
+                    "สูงกว่าค่าเฉลี่ย " + (byBatch[batchCode] / tbLo).toFixed(1) + " เท่า — เกินเกณฑ์แจ้งเตือน", batchThreshold, "ไม่"]);
         }
     });
     if (!them.length) {

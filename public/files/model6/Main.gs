@@ -163,21 +163,21 @@ function applyWarningFormatting_(ss) {
 function addColorRule_(ss, sheetKey, columnName, valueColorPairs) {
     var sheet = ss.getSheetByName(getSheetName_(sheetKey));
     var column = FIELDS[sheetKey].indexOf(columnName) + 1;
-    var vung = sheet.getRange(2, column, sheet.getMaxRows() - 1, 1);
+    var targetRange = sheet.getRange(2, column, sheet.getMaxRows() - 1, 1);
     var rules = sheet.getConditionalFormatRules();
     valueColorPairs.forEach(function (pair) {
         rules.push(SpreadsheetApp.newConditionalFormatRule()
-            .whenTextEqualTo(pair[0]).setBackground(pair[1]).setRanges([vung]).build());
+            .whenTextEqualTo(pair[0]).setBackground(pair[1]).setRanges([targetRange]).build());
     });
     sheet.setConditionalFormatRules(rules);
 }
 function ensureFolderStructure_() {
     var properties = PropertiesService.getScriptProperties();
-    var goc = findFolderByName_(null, CONFIG.ROOT_FOLDER_NAME);
-    var researchInbox = findFolderByName_(goc, "RESEARCH_INBOX");
-    var napHoaHong = findFolderByName_(goc, "COMMISSION_INBOX");
+    var rootFolder = findFolderByName_(null, CONFIG.ROOT_FOLDER_NAME);
+    var researchInbox = findFolderByName_(rootFolder, "RESEARCH_INBOX");
+    var commissionInbox = findFolderByName_(rootFolder, "COMMISSION_INBOX");
     var templateName = "COMMISSION_TEMPLATE.csv";
-    var existing = napHoaHong.getFilesByName(templateName);
+    var existing = commissionInbox.getFilesByName(templateName);
     var templateFile;
     if (existing.hasNext()) {
         templateFile = existing.next();
@@ -185,11 +185,11 @@ function ensureFolderStructure_() {
     else {
         var contentText = "รหัสลูกค้า,รหัสพันธมิตร,รหัสธุรกรรม,วันที่บันทึก,สถานะ,ค่าคอมมิชชันโดยประมาณ,ค่าคอมมิชชันที่อนุมัติ,ยอดที่ได้รับ,วันที่คาดว่าจะได้รับ,แหล่งรายงาน,หมายเหตุ\n" +
             "LEAD-TEST,PARTNER-TEST,TX-TEST,01/08/2026,บันทึกแล้ว,5000,0,0,30/09/2026,รายงานพันธมิตร,แถวตัวอย่าง - ลบก่อนใช้งาน";
-        templateFile = napHoaHong.createFile(templateName, contentText, MimeType.CSV);
+        templateFile = commissionInbox.createFile(templateName, contentText, MimeType.CSV);
     }
     properties.setProperties({
-        ROOT_FOLDER_ID: goc.getId(), RESEARCH_INBOX_FOLDER_ID: researchInbox.getId(),
-        COMMISSION_INBOX_FOLDER_ID: napHoaHong.getId(), COMMISSION_TEMPLATE_FILE_ID: templateFile.getId()
+        ROOT_FOLDER_ID: rootFolder.getId(), RESEARCH_INBOX_FOLDER_ID: researchInbox.getId(),
+        COMMISSION_INBOX_FOLDER_ID: commissionInbox.getId(), COMMISSION_TEMPLATE_FILE_ID: templateFile.getId()
     });
     var researchTemplateId = properties.getProperty("RESEARCH_TEMPLATE_FILE_ID");
     var hasResearchTemplate = false;
@@ -202,9 +202,9 @@ function ensureFolderStructure_() {
     }
     if (!hasResearchTemplate) {
         var researchTemplate = SpreadsheetApp.create("RESEARCH_TEMPLATE");
-        var tabSP = researchTemplate.getSheets()[0];
-        tabSP.setName(getSheetName_("PRODUCTS"));
-        formatTemplateSheet_(tabSP, TEMPLATE_HEADERS.PRODUCTS, ["EXAMPLE-PRODUCT01", "ชื่อซอฟต์แวร์", "กลุ่มปัญหาที่แก้ไข", "ลูกค้าที่เหมาะสม", "ลูกค้าที่ไม่เหมาะสม",
+        var productTemplateSheet = researchTemplate.getSheets()[0];
+        productTemplateSheet.setName(getSheetName_("PRODUCTS"));
+        formatTemplateSheet_(productTemplateSheet, TEMPLATE_HEADERS.PRODUCTS, ["EXAMPLE-PRODUCT01", "ชื่อซอฟต์แวร์", "กลุ่มปัญหาที่แก้ไข", "ลูกค้าที่เหมาะสม", "ลูกค้าที่ไม่เหมาะสม",
             "ราคาต่อแพ็กเกจ", "คุณสมบัติหลัก", "ข้อจำกัดของแพ็กเกจ", "ลิงก์แหล่งข้อมูลทางการ", "19/08/2026",
             "แถวตัวอย่าง — รหัสที่ขึ้นต้นด้วย EXAMPLE จะไม่ถูกนำเข้า"]);
         formatTemplateSheet_(researchTemplate.insertSheet(getSheetName_("PARTNERS")), TEMPLATE_HEADERS.PARTNERS, ["EXAMPLE-PARTNER01", "ชื่อโปรแกรม", "EXAMPLE-PRODUCT01", "ลิงก์สมัคร", "ลิงก์แนะนำ (ถ้ามี)",
@@ -229,9 +229,9 @@ function createDriveFolders() {
     logEvent_("สร้างโครงสร้างโฟลเดอร์ไดรฟ์", "WEUP_SOLOSIX_AFFILIATE_AI / RESEARCH_INBOX / COMMISSION_INBOX + ไฟล์ตัวอย่าง", "สำเร็จ");
     showSystemLinks();
 }
-function findFolderByName_(cha, name) {
-    var ds = cha ? cha.getFoldersByName(name) : DriveApp.getFoldersByName(name);
-    return ds.hasNext() ? ds.next() : (cha ? cha.createFolder(name) : DriveApp.createFolder(name));
+function findFolderByName_(parentFolder, name) {
+    var items = parentFolder ? parentFolder.getFoldersByName(name) : DriveApp.getFoldersByName(name);
+    return items.hasNext() ? items.next() : (parentFolder ? parentFolder.createFolder(name) : DriveApp.createFolder(name));
 }
 function importResearchData() {
     var properties = PropertiesService.getScriptProperties();
@@ -241,23 +241,23 @@ function importResearchData() {
         return;
     }
     var folder = DriveApp.getFolderById(folderId);
-    var ds = folder.getFiles();
+    var items = folder.getFiles();
     var productCount = 0, partnerCount = 0, errors = [];
-    while (ds.hasNext()) {
-        var file = ds.next();
+    while (items.hasNext()) {
+        var file = items.next();
         var name = file.getName();
         if (name.indexOf("IMPORTED_") === 0 || name.indexOf("TEMPLATE_") === 0 || name.indexOf("TEMP_CONVERTED_") === 0)
             continue;
-        var loaiTep = file.getMimeType();
-        var isSpreadsheet = loaiTep === MimeType.GOOGLE_SHEETS || loaiTep === MimeType.MICROSOFT_EXCEL ||
-            loaiTep === MimeType.MICROSOFT_EXCEL_LEGACY || /\.xlsx?$/i.test(name);
+        var mimeType = file.getMimeType();
+        var isSpreadsheet = mimeType === MimeType.GOOGLE_SHEETS || mimeType === MimeType.MICROSOFT_EXCEL ||
+            mimeType === MimeType.MICROSOFT_EXCEL_LEGACY || /\.xlsx?$/i.test(name);
         if (isSpreadsheet) {
             try {
                 var workbookResult = importResearchWorkbook_(file);
-                productCount += workbookResult.sp;
-                partnerCount += workbookResult.dt;
-                if (workbookResult.boQua.length)
-                    errors.push(name + " — ข้าม " + workbookResult.boQua.length + " รายการ: " + workbookResult.boQua.join("; "));
+                productCount += workbookResult.product;
+                partnerCount += workbookResult.partner;
+                if (workbookResult.skippedItems.length)
+                    errors.push(name + " — ข้าม " + workbookResult.skippedItems.length + " รายการ: " + workbookResult.skippedItems.join("; "));
                 file.setName("IMPORTED_" + name);
             }
             catch (eBang) {
@@ -276,9 +276,9 @@ function importResearchData() {
             var contentText = readFileContent_(file);
             if (!contentText || contentText.length < 50)
                 throw new Error("เนื้อหาสั้นเกินไปหรืออ่านไม่ออก");
-            var loai = matchResult[1].toUpperCase();
+            var fileType = matchResult[1].toUpperCase();
             var code = matchResult[2].toUpperCase();
-            if (loai === "PRODUCT") {
+            if (fileType === "PRODUCT") {
                 importProduct_(code, contentText, file.getUrl());
                 productCount++;
             }
@@ -300,25 +300,25 @@ function importResearchData() {
     SpreadsheetApp.getUi().alert(message);
 }
 function readFileContent_(file) {
-    var loai = file.getMimeType();
-    if (loai === MimeType.GOOGLE_DOCS)
+    var fileType = file.getMimeType();
+    if (fileType === MimeType.GOOGLE_DOCS)
         return DocumentApp.openById(file.getId()).getBody().getText();
-    if (loai === MimeType.PLAIN_TEXT || loai === MimeType.CSV || /\.(txt|csv)$/i.test(file.getName())) {
+    if (fileType === MimeType.PLAIN_TEXT || fileType === MimeType.CSV || /\.(txt|csv)$/i.test(file.getName())) {
         return file.getBlob().getDataAsString("UTF-8");
     }
-    var convertible = loai === MimeType.MICROSOFT_WORD || loai === MimeType.MICROSOFT_WORD_LEGACY ||
-        loai === MimeType.PDF || loai === MimeType.PNG || loai === MimeType.JPEG ||
+    var convertible = fileType === MimeType.MICROSOFT_WORD || fileType === MimeType.MICROSOFT_WORD_LEGACY ||
+        fileType === MimeType.PDF || fileType === MimeType.PNG || fileType === MimeType.JPEG ||
         /\.(docx?|pdf|png|jpe?g)$/i.test(file.getName());
     if (!convertible) {
         throw new Error("ไม่รองรับรูปแบบไฟล์นี้ ระบบรองรับ Google Docs, TXT, Word, PDF, PNG/JPG และ Google Sheets/Excel ตามแม่แบบ RESEARCH_TEMPLATE");
     }
-    var idTam = convertToGoogleDocs_(file);
+    var temporaryFileId = convertToGoogleDocs_(file);
     try {
-        return DocumentApp.openById(idTam).getBody().getText();
+        return DocumentApp.openById(temporaryFileId).getBody().getText();
     }
     finally {
         try {
-            DriveApp.getFileById(idTam).setTrashed(true);
+            DriveApp.getFileById(temporaryFileId).setTrashed(true);
         }
         catch (e) { }
     }
@@ -347,49 +347,49 @@ var TEMPLATE_HEADERS = {
   PARTNERS: ["รหัสพันธมิตร", "ชื่อโปรแกรม", "รหัสสินค้าที่เกี่ยวข้อง", "ลิงก์สมัคร", "ลิงก์แนะนำ", "วิธีบันทึก", "ระยะเวลาบันทึก", "อัตราค่าคอมมิชชัน", "เงื่อนไขการยกเลิก", "รอบชำระเงิน", "ข้อจำกัดการโปรโมต", "ผู้ติดต่อ", "แหล่งเงื่อนไข", "วันที่ตรวจสอบ", "หมายเหตุ"]
 };
 function importResearchWorkbook_(file) {
-    var idTam = null, spreadsheet;
+    var temporaryFileId = null, spreadsheet;
     if (file.getMimeType() === MimeType.GOOGLE_SHEETS) {
         spreadsheet = SpreadsheetApp.openById(file.getId());
     }
     else {
-        idTam = convertExcelToSpreadsheet_(file);
-        spreadsheet = SpreadsheetApp.openById(idTam);
+        temporaryFileId = convertExcelToSpreadsheet_(file);
+        spreadsheet = SpreadsheetApp.openById(temporaryFileId);
     }
-    var kq = { sp: 0, dt: 0, boQua: [] };
+    var aiResult = { product: 0, partner: 0, skippedItems: [] };
     try {
-        kq.sp = importResearchSheet_(spreadsheet, "PRODUCTS", file.getUrl(), kq.boQua);
-        kq.dt = importResearchSheet_(spreadsheet, "PARTNERS", file.getUrl(), kq.boQua);
-        if (kq.sp === 0 && kq.dt === 0 && !kq.boQua.length) {
+        aiResult.product = importResearchSheet_(spreadsheet, "PRODUCTS", file.getUrl(), aiResult.skippedItems);
+        aiResult.partner = importResearchSheet_(spreadsheet, "PARTNERS", file.getUrl(), aiResult.skippedItems);
+        if (aiResult.product === 0 && aiResult.partner === 0 && !aiResult.skippedItems.length) {
             throw new Error("ไม่เห็นแท็บสินค้าหรือพันธมิตรที่มีข้อมูล — ใช้ไฟล์เทมเพลตที่ถูกต้อง RESEARCH_TEMPLATE");
         }
     }
     finally {
-        if (idTam) {
+        if (temporaryFileId) {
             try {
-                DriveApp.getFileById(idTam).setTrashed(true);
+                DriveApp.getFileById(temporaryFileId).setTrashed(true);
             }
             catch (e) { }
         }
     }
-    return kq;
+    return aiResult;
 }
-function importResearchSheet_(spreadsheet, sheetKey, sourceFileLink, boQua) {
+function importResearchSheet_(spreadsheet, sheetKey, sourceFileLink, skippedItems) {
     var tab = spreadsheet.getSheetByName(getSheetName_(sheetKey));
     if (!tab || tab.getLastRow() < 2)
         return 0;
     var rawValues = tab.getDataRange().getValues();
-    var viTri = {};
-    rawValues[0].forEach(function (c, i) { viTri[columnNumber_(c)] = i; });
+    var headerIndex = {};
+    rawValues[0].forEach(function (c, i) { headerIndex[columnNumber_(c)] = i; });
     var schema = TEMPLATE_IMPORT_SCHEMA[sheetKey];
-    if (viTri[schema.key] === undefined) {
-        boQua.push("ชีต " + getSheetName_(sheetKey) + " ขาดคอลัมน์ " + (COLUMN_LABELS[sheetKey][FIELDS[sheetKey].indexOf(schema.key)] || schema.key));
+    if (headerIndex[schema.key] === undefined) {
+        skippedItems.push("ชีต " + getSheetName_(sheetKey) + " ขาดคอลัมน์ " + (COLUMN_LABELS[sheetKey][FIELDS[sheetKey].indexOf(schema.key)] || schema.key));
         return 0;
     }
     var targetSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(getSheetName_(sheetKey));
     var importedCount = 0;
     for (var d = 1; d < rawValues.length; d++) {
         var sourceRow = rawValues[d];
-        var code = String(sourceRow[viTri[schema.key]] || "").trim().toUpperCase();
+        var code = String(sourceRow[headerIndex[schema.key]] || "").trim().toUpperCase();
         if (!code)
             continue;
         if (code.indexOf("EXAMPLE") === 0)
@@ -397,7 +397,7 @@ function importResearchSheet_(spreadsheet, sheetKey, sourceFileLink, boQua) {
         var values = {};
         values[schema.key] = code;
         schema.column.forEach(function (column) {
-            var o = viTri[column] !== undefined ? String(sourceRow[viTri[column]] || "").trim() : "";
+            var o = headerIndex[column] !== undefined ? String(sourceRow[headerIndex[column]] || "").trim() : "";
             values[column] = o || "จำเป็นต้องตรวจสอบ";
         });
         if (sheetKey === "PARTNERS") {
@@ -408,10 +408,10 @@ function importResearchSheet_(spreadsheet, sheetKey, sourceFileLink, boQua) {
             if (values.RELATED_PRODUCT_CODE === "จำเป็นต้องตรวจสอบ")
                 values.RELATED_PRODUCT_CODE = "";
         }
-        var sourceDate = viTri.VERIFIED_DATE !== undefined ? sourceRow[viTri.VERIFIED_DATE] : "";
+        var sourceDate = headerIndex.VERIFIED_DATE !== undefined ? sourceRow[headerIndex.VERIFIED_DATE] : "";
         values.VERIFIED_DATE = parseDate_(sourceDate) ? formatDate_(sourceDate) : today_();
-        if (viTri.NOTES !== undefined && String(sourceRow[viTri.NOTES] || "").trim()) {
-            values.NOTES = String(sourceRow[viTri.NOTES]).trim();
+        if (headerIndex.NOTES !== undefined && String(sourceRow[headerIndex.NOTES] || "").trim()) {
+            values.NOTES = String(sourceRow[headerIndex.NOTES]).trim();
         }
         values[sheetKey === "PRODUCTS" ? "DATA_STATUS" : "APPROVAL_STATUS"] = "รออนุมัติ";
         values.SOURCE_FILE_LINK = sourceFileLink;
@@ -441,17 +441,17 @@ function importProduct_(code, contentText, sourceFileLink) {
         "{\"product_name\":\"\",\"problem_group\":\"\",\"suitable_customers\":\"\",\"unsuitable_customers\":\"\"," +
         "\"price_range\":\"\",\"main_features\":\"\",\"limitations\":\"\",\"official_source\":\"\",\"notes\":\"\"}\n\n" +
         "--- ไฟล์ ---" + contentText.substring(0, 30000);
-    var kq = parseJson_(callAi_(prompt));
+    var aiResult = parseJson_(callAi_(prompt));
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(getSheetName_("PRODUCTS"));
     var values = {
-        PRODUCT_CODE: code, PRODUCT_NAME: kq.product_name || "จำเป็นต้องตรวจสอบ",
-        PROBLEM_GROUP: kq.problem_group || "จำเป็นต้องตรวจสอบ", SUITABLE_CUSTOMERS: kq.suitable_customers || "จำเป็นต้องตรวจสอบ",
-        UNSUITABLE_CUSTOMERS: kq.unsuitable_customers || "จำเป็นต้องตรวจสอบ", PRICE_RANGE: kq.price_range || "จำเป็นต้องตรวจสอบ",
-        MAIN_FEATURES: kq.main_features || "จำเป็นต้องตรวจสอบ", LIMITATIONS: kq.limitations || "จำเป็นต้องตรวจสอบ",
-        OFFICIAL_SOURCE: kq.official_source || "จำเป็นต้องตรวจสอบ",
+        PRODUCT_CODE: code, PRODUCT_NAME: aiResult.product_name || "จำเป็นต้องตรวจสอบ",
+        PROBLEM_GROUP: aiResult.problem_group || "จำเป็นต้องตรวจสอบ", SUITABLE_CUSTOMERS: aiResult.suitable_customers || "จำเป็นต้องตรวจสอบ",
+        UNSUITABLE_CUSTOMERS: aiResult.unsuitable_customers || "จำเป็นต้องตรวจสอบ", PRICE_RANGE: aiResult.price_range || "จำเป็นต้องตรวจสอบ",
+        MAIN_FEATURES: aiResult.main_features || "จำเป็นต้องตรวจสอบ", LIMITATIONS: aiResult.limitations || "จำเป็นต้องตรวจสอบ",
+        OFFICIAL_SOURCE: aiResult.official_source || "จำเป็นต้องตรวจสอบ",
         VERIFIED_DATE: today_(), DATA_STATUS: "รออนุมัติ",
-        SOURCE_FILE_LINK: sourceFileLink, NOTES: kq.notes || ""
+        SOURCE_FILE_LINK: sourceFileLink, NOTES: aiResult.notes || ""
     };
     upsertRow_(sheet, FIELDS.PRODUCTS, "PRODUCT_CODE", code, values);
 }
@@ -463,18 +463,18 @@ function importPartner_(code, contentText, sourceFileLink) {
         "\"attribution_window\":\"\",\"commission_rate\":\"\",\"reversal_terms\":\"\",\"payment_cycle\":\"\"," +
         "\"promotion_limits\":\"\",\"contact_person\":\"\",\"terms_source\":\"\",\"notes\":\"\"}\n\n" +
         "--- เอกสารข้อกำหนด ---" + contentText.substring(0, 30000);
-    var kq = parseJson_(callAi_(prompt));
+    var aiResult = parseJson_(callAi_(prompt));
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(getSheetName_("PARTNERS"));
     var values = {
-        PARTNER_CODE: code, PROGRAM_NAME: kq.program_name || "จำเป็นต้องตรวจสอบ",
-        RELATED_PRODUCT_CODE: kq.related_product_code || "", SIGNUP_LINK: kq.signup_link || "จำเป็นต้องตรวจสอบ",
-        ATTRIBUTION_METHOD: kq.attribution_method || "จำเป็นต้องตรวจสอบ", ATTRIBUTION_WINDOW: kq.attribution_window || "จำเป็นต้องตรวจสอบ",
-        COMMISSION_RATE: kq.commission_rate || "จำเป็นต้องตรวจสอบ", REVERSAL_TERMS: kq.reversal_terms || "จำเป็นต้องตรวจสอบ",
-        PAYMENT_CYCLE: kq.payment_cycle || "จำเป็นต้องตรวจสอบ", PROMOTION_LIMITS: kq.promotion_limits || "จำเป็นต้องตรวจสอบ",
-        CONTACT_PERSON: kq.contact_person || "", TERMS_SOURCE: kq.terms_source || "จำเป็นต้องตรวจสอบ",
+        PARTNER_CODE: code, PROGRAM_NAME: aiResult.program_name || "จำเป็นต้องตรวจสอบ",
+        RELATED_PRODUCT_CODE: aiResult.related_product_code || "", SIGNUP_LINK: aiResult.signup_link || "จำเป็นต้องตรวจสอบ",
+        ATTRIBUTION_METHOD: aiResult.attribution_method || "จำเป็นต้องตรวจสอบ", ATTRIBUTION_WINDOW: aiResult.attribution_window || "จำเป็นต้องตรวจสอบ",
+        COMMISSION_RATE: aiResult.commission_rate || "จำเป็นต้องตรวจสอบ", REVERSAL_TERMS: aiResult.reversal_terms || "จำเป็นต้องตรวจสอบ",
+        PAYMENT_CYCLE: aiResult.payment_cycle || "จำเป็นต้องตรวจสอบ", PROMOTION_LIMITS: aiResult.promotion_limits || "จำเป็นต้องตรวจสอบ",
+        CONTACT_PERSON: aiResult.contact_person || "", TERMS_SOURCE: aiResult.terms_source || "จำเป็นต้องตรวจสอบ",
         VERIFIED_DATE: today_(), APPROVAL_STATUS: "รออนุมัติ",
-        SOURCE_FILE_LINK: sourceFileLink, NOTES: kq.notes || ""
+        SOURCE_FILE_LINK: sourceFileLink, NOTES: aiResult.notes || ""
     };
     upsertRow_(sheet, FIELDS.PARTNERS, "PARTNER_CODE", code, values);
 }
@@ -500,8 +500,8 @@ function createNeedsForm() {
     form.addParagraphTextItem().setTitle("คุณสมบัติใดบ้างที่ต้องมี?").setRequired(true);
     form.addTextItem().setTitle("คุณต้องการปรับใช้นานแค่ไหน?").setRequired(true);
     try {
-        var goc = DriveApp.getFolderById(properties.getProperty("ROOT_FOLDER_ID"));
-        DriveApp.getFileById(form.getId()).moveTo(goc);
+        var rootFolder = DriveApp.getFolderById(properties.getProperty("ROOT_FOLDER_ID"));
+        DriveApp.getFileById(form.getId()).moveTo(rootFolder);
     }
     catch (e) { }
     ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -549,61 +549,61 @@ function classifyNewLeads() {
         SpreadsheetApp.getUi().alert("รันรายการที่ 1 ก่อน");
         return;
     }
-    var dsSP = readRows_(productSheet, FIELDS.PRODUCTS);
-    var homNay = new Date();
-    var spHopLe = [], staleProducts = 0;
-    dsSP.forEach(function (sp) {
-        if (sp.DATA_STATUS !== "ตรวจสอบแล้ว")
+    var productRows = readRows_(productSheet, FIELDS.PRODUCTS);
+    var today = new Date();
+    var validProductsList = [], staleProducts = 0;
+    productRows.forEach(function (product) {
+        if (product.DATA_STATUS !== "ตรวจสอบแล้ว")
             return;
-        var date = parseDate_(sp.VERIFIED_DATE);
-        if (!date || (homNay - date) / 86400000 > CONFIG.STALE_AFTER_DAYS) {
-            productSheet.getRange(sp._row, FIELDS.PRODUCTS.indexOf("DATA_STATUS") + 1).setValue("ต้องอัปเดต");
+        var date = parseDate_(product.VERIFIED_DATE);
+        if (!date || (today - date) / 86400000 > CONFIG.STALE_AFTER_DAYS) {
+            productSheet.getRange(product._row, FIELDS.PRODUCTS.indexOf("DATA_STATUS") + 1).setValue("ต้องอัปเดต");
             staleProducts++;
             return;
         }
-        spHopLe.push({
-            PRODUCT_CODE: sp.PRODUCT_CODE, PRODUCT_NAME: sp.PRODUCT_NAME, PROBLEM_GROUP: sp.PROBLEM_GROUP,
-            SUITABLE_CUSTOMERS: sp.SUITABLE_CUSTOMERS, UNSUITABLE_CUSTOMERS: sp.UNSUITABLE_CUSTOMERS,
-            PRICE_RANGE: sp.PRICE_RANGE, MAIN_FEATURES: sp.MAIN_FEATURES, LIMITATIONS: sp.LIMITATIONS
+        validProductsList.push({
+            PRODUCT_CODE: product.PRODUCT_CODE, PRODUCT_NAME: product.PRODUCT_NAME, PROBLEM_GROUP: product.PROBLEM_GROUP,
+            SUITABLE_CUSTOMERS: product.SUITABLE_CUSTOMERS, UNSUITABLE_CUSTOMERS: product.UNSUITABLE_CUSTOMERS,
+            PRICE_RANGE: product.PRICE_RANGE, MAIN_FEATURES: product.MAIN_FEATURES, LIMITATIONS: product.LIMITATIONS
         });
     });
-    if (!spHopLe.length) {
+    if (!validProductsList.length) {
         SpreadsheetApp.getUi().alert("ไม่มีสินค้าที่อยู่ในสถานะ ตรวจสอบแล้ว และตรวจล่าสุดไม่เกิน " +
             CONFIG.STALE_AFTER_DAYS + " วัน" + (staleProducts ? "\nระบบเปลี่ยนสินค้า " + staleProducts + " รายการเป็น ต้องอัปเดต" : "") +
             "\nโปรดอัปเดตและตรวจสอบข้อมูลสินค้าก่อนจำแนกลูกค้า");
         return;
     }
-    var dsKH = readRows_(leadSheet, FIELDS.LEADS).filter(function (k) { return k.APPROVAL_STATUS === "ใหม่"; });
-    if (!dsKH.length) {
+    var leadRows = readRows_(leadSheet, FIELDS.LEADS).filter(function (k) { return k.APPROVAL_STATUS === "ใหม่"; });
+    if (!leadRows.length) {
         SpreadsheetApp.getUi().alert("ไม่มีลูกค้าใหม่ที่รอการจำแนก");
         return;
     }
     var validProductCodes = {};
-    spHopLe.forEach(function (sp) { validProductCodes[String(sp.PRODUCT_CODE).toUpperCase()] = true; });
+    validProductsList.forEach(function (product) { validProductCodes[String(product.PRODUCT_CODE).toUpperCase()] = true; });
     var processedCount = 0, errorCount = 0;
-    dsKH.forEach(function (kh) {
+    leadRows.forEach(function (lead) {
         try {
-            var kq = parseJson_(callAi_(buildClassificationPrompt_(kh, spHopLe)));
-            var mucXuLy = STATUS.LEVELS.indexOf(kq.handling_level) >= 0 ? kq.handling_level : "ระดับ 2";
-            var choicesList = (kq.choices || []).slice(0, 3);
-            choicesList.forEach(function (lc) {
-                if (!validProductCodes[String(lc.product_code || "").toUpperCase()]) {
-                    throw new Error("AI ส่งคืนรหัสสินค้าที่ไม่มีอยู่ในรายการ: " + lc.product_code);
+            var aiResult = parseJson_(callAi_(buildClassificationPrompt_(lead, validProductsList)));
+            var handlingLevel = STATUS.LEVELS.indexOf(aiResult.handling_level) >= 0 ? aiResult.handling_level : "ระดับ 2";
+            var choicesList = (aiResult.choices || []).slice(0, 3);
+            choicesList.forEach(function (choice) {
+                if (!validProductCodes[String(choice.product_code || "").toUpperCase()]) {
+                    throw new Error("AI ส่งคืนรหัสสินค้าที่ไม่มีอยู่ในรายการ: " + choice.product_code);
                 }
             });
-            var newStatus = mucXuLy === "ระดับ 1" ? "รออนุมัติ" : (mucXuLy === "ระดับ 2" ? "ต้องสอบถามเพิ่ม" : "ส่งให้ผู้ดูแล");
-            var recommendation = choicesList.map(function (lc) { return lc.product_code; }).join("; ");
-            var missingInfo = (kq.missing_info || []).join("; ");
-            writeCell_(leadSheet, kh._row, "AI_RESULT", JSON.stringify(kq));
-            writeCell_(leadSheet, kh._row, "RECOMMENDATION", recommendation);
-            writeCell_(leadSheet, kh._row, "MISSING_INFO", missingInfo);
-            writeCell_(leadSheet, kh._row, "HANDLING_LEVEL", mucXuLy);
-            writeCell_(leadSheet, kh._row, "APPROVAL_STATUS", newStatus);
+            var newStatus = handlingLevel === "ระดับ 1" ? "รออนุมัติ" : (handlingLevel === "ระดับ 2" ? "ต้องสอบถามเพิ่ม" : "ส่งให้ผู้ดูแล");
+            var recommendation = choicesList.map(function (choice) { return choice.product_code; }).join("; ");
+            var missingInfo = (aiResult.missing_info || []).join("; ");
+            writeCell_(leadSheet, lead._row, "AI_RESULT", JSON.stringify(aiResult));
+            writeCell_(leadSheet, lead._row, "RECOMMENDATION", recommendation);
+            writeCell_(leadSheet, lead._row, "MISSING_INFO", missingInfo);
+            writeCell_(leadSheet, lead._row, "HANDLING_LEVEL", handlingLevel);
+            writeCell_(leadSheet, lead._row, "APPROVAL_STATUS", newStatus);
             processedCount++;
         }
         catch (e) {
-            writeCell_(leadSheet, kh._row, "NOTES", "จำแนกไม่สำเร็จ: " + e.message);
-            logEvent_("จำแนกลูกค้า", kh.LEAD_CODE, "ข้อผิดพลาด: " + e.message);
+            writeCell_(leadSheet, lead._row, "NOTES", "จำแนกไม่สำเร็จ: " + e.message);
+            logEvent_("จำแนกลูกค้า", lead.LEAD_CODE, "ข้อผิดพลาด: " + e.message);
             errorCount++;
         }
     });
@@ -613,7 +613,7 @@ function classifyNewLeads() {
         "ระดับ 2 → ต้องสอบถามเพิ่ม: ระบบจะสร้างอีเมลขอข้อมูล ห้ามคาดเดา\n" +
         "ระดับ 3 → ส่งให้ผู้ดูแล: ผู้ดูแลดำเนินการโดยตรง ระบบไม่สร้างอีเมลแนะนำ");
 }
-function buildClassificationPrompt_(kh, dsSP) {
+function buildClassificationPrompt_(lead, productRows) {
     return "คุณช่วยจำแนกความต้องการซื้อซอฟต์แวร์สำหรับธุรกิจขนาดเล็ก " +
         "ใช้เฉพาะข้อมูลสินค้าที่ให้ไว้ด้านล่าง รายการนี้ไม่มีข้อมูลค่าคอมมิชชันและห้ามใช้ผลประโยชน์ทางการค้าในการให้คะแนน " +
         "ห้ามใช้คำว่า ดีที่สุด อันดับหนึ่ง เหมาะสมที่สุด หรือประหยัดที่สุด " +
@@ -625,60 +625,60 @@ function buildClassificationPrompt_(kh, dsSP) {
         "\"choices\":[{\"product_code\":\"\",\"reasons\":[\"\",\"\",\"\"],\"concerns\":\"\",\"exclusion_condition\":\"\"}]," +
         "\"missing_info\":[\"\"]}\n\n" +
         "--- ความต้องการของลูกค้า ---\n" +
-        "จำนวนพนักงาน: " + kh.COMPANY_SIZE + "\n" +
-        "จำนวนผู้ใช้: " + kh.USER_COUNT + "\n" +
-        "ปัญหาที่ต้องแก้: " + kh.PROBLEMS_TO_SOLVE + "\n" +
-        "เครื่องมือปัจจุบัน: " + kh.CURRENT_TOOLS + "\n" +
-        "งบประมาณต่อเดือน: " + kh.MONTHLY_BUDGET + "\n" +
-        "เกณฑ์จำเป็น: " + kh.REQUIRED_CRITERIA + "\n" +
-        "ระยะเวลาติดตั้ง: " + kh.IMPLEMENTATION_TIMELINE + "\n\n" +
+        "จำนวนพนักงาน: " + lead.COMPANY_SIZE + "\n" +
+        "จำนวนผู้ใช้: " + lead.USER_COUNT + "\n" +
+        "ปัญหาที่ต้องแก้: " + lead.PROBLEMS_TO_SOLVE + "\n" +
+        "เครื่องมือปัจจุบัน: " + lead.CURRENT_TOOLS + "\n" +
+        "งบประมาณต่อเดือน: " + lead.MONTHLY_BUDGET + "\n" +
+        "เกณฑ์จำเป็น: " + lead.REQUIRED_CRITERIA + "\n" +
+        "ระยะเวลาติดตั้ง: " + lead.IMPLEMENTATION_TIMELINE + "\n\n" +
         "--- รายการสินค้าที่ตรวจสอบแล้ว (ไม่มีข้อมูลค่าคอมมิชชัน) ---\n" +
-        JSON.stringify(dsSP);
+        JSON.stringify(productRows);
 }
 function createCustomerDrafts() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var leadSheet = ss.getSheetByName(getSheetName_("LEADS"));
-    var dsKH = readRows_(leadSheet, FIELDS.LEADS);
-    var dsSP = readRows_(ss.getSheetByName(getSheetName_("PRODUCTS")), FIELDS.PRODUCTS);
-    var dsDT = readRows_(ss.getSheetByName(getSheetName_("PARTNERS")), FIELDS.PARTNERS);
+    var leadRows = readRows_(leadSheet, FIELDS.LEADS);
+    var productRows = readRows_(ss.getSheetByName(getSheetName_("PRODUCTS")), FIELDS.PRODUCTS);
+    var partnerRows = readRows_(ss.getSheetByName(getSheetName_("PARTNERS")), FIELDS.PARTNERS);
     var productName = {};
-    dsSP.forEach(function (sp) { productName[String(sp.PRODUCT_CODE).toUpperCase()] = sp.PRODUCT_NAME; });
+    productRows.forEach(function (product) { productName[String(product.PRODUCT_CODE).toUpperCase()] = product.PRODUCT_NAME; });
     var referralByProduct = {};
-    dsDT.forEach(function (dt) {
-        if (dt.APPROVAL_STATUS !== "อนุมัติ")
+    partnerRows.forEach(function (partner) {
+        if (partner.APPROVAL_STATUS !== "อนุมัติ")
             return;
-        String(dt.RELATED_PRODUCT_CODE || "").split(/[,;]+/).forEach(function (code) {
+        String(partner.RELATED_PRODUCT_CODE || "").split(/[,;]+/).forEach(function (code) {
             code = code.trim().toUpperCase();
             if (code && !referralByProduct[code])
-                referralByProduct[code] = dt.REFERRAL_LINK || "";
+                referralByProduct[code] = partner.REFERRAL_LINK || "";
         });
     });
-    var adviceCount = 0, followupCount = 0, boQua = [];
-    dsKH.forEach(function (kh) {
-        if (kh.SENT_DATE)
+    var adviceCount = 0, followupCount = 0, skippedItems = [];
+    leadRows.forEach(function (lead) {
+        if (lead.SENT_DATE)
             return;
-        if (!kh.EMAIL) {
-            if (kh.APPROVAL_STATUS === "อนุมัติ" || kh.APPROVAL_STATUS === "ต้องสอบถามเพิ่ม") {
-                boQua.push(kh.LEAD_CODE + " (ไม่มีอีเมล)");
+        if (!lead.EMAIL) {
+            if (lead.APPROVAL_STATUS === "อนุมัติ" || lead.APPROVAL_STATUS === "ต้องสอบถามเพิ่ม") {
+                skippedItems.push(lead.LEAD_CODE + " (ไม่มีอีเมล)");
             }
             return;
         }
-        if (kh.APPROVAL_STATUS === "อนุมัติ") {
-            var kq;
+        if (lead.APPROVAL_STATUS === "อนุมัติ") {
+            var aiResult;
             try {
-                kq = JSON.parse(kh.AI_RESULT || "{}");
+                aiResult = JSON.parse(lead.AI_RESULT || "{}");
             }
             catch (e) {
-                boQua.push(kh.LEAD_CODE + " (ข้อมูล AI_RESULT ไม่ใช่ JSON ที่ถูกต้อง)");
+                skippedItems.push(lead.LEAD_CODE + " (ข้อมูล AI_RESULT ไม่ใช่ JSON ที่ถูกต้อง)");
                 return;
             }
             var part = [];
-            (kq.choices || []).slice(0, 3).forEach(function (lc, i) {
-                var code = String(lc.product_code || "").toUpperCase();
+            (aiResult.choices || []).slice(0, 3).forEach(function (choice, i) {
+                var code = String(choice.product_code || "").toUpperCase();
                 var sections = "<p style=\"margin:14px 0 4px\"><b>" + (i + 1) + ". " + (productName[code] || code) + "</b></p>" +
                     "<ul style=\"margin:0 0 4px 18px\">" +
-                    (lc.reasons || []).map(function (l) { return "<li>" + l + "</li>"; }).join("") + "</ul>" +
-                    (lc.concerns ? "<p style=\"margin:2px 0\"><i>สิ่งที่ควรพิจารณา:</i>" + lc.concerns + "</p>" : "");
+                    (choice.reasons || []).map(function (l) { return "<li>" + l + "</li>"; }).join("") + "</ul>" +
+                    (choice.concerns ? "<p style=\"margin:2px 0\"><i>สิ่งที่ควรพิจารณา:</i>" + choice.concerns + "</p>" : "");
                 if (referralByProduct[code]) {
                     sections += "<p style=\"margin:2px 0\">สมัคร/ลอง: <a href=\"" + referralByProduct[code] + "\">" + referralByProduct[code] + "</a></p>";
                 }
@@ -688,25 +688,25 @@ function createCustomerDrafts() {
                 part.push(sections);
             });
             var contentText = "<p>สวัสดี</p>" +
-                "<p>จากความต้องการที่คุณส่งมา (จำนวนพนักงาน " + kh.COMPANY_SIZE + " คน งบประมาณ " + kh.MONTHLY_BUDGET +
+                "<p>จากความต้องการที่คุณส่งมา (จำนวนพนักงาน " + lead.COMPANY_SIZE + " คน งบประมาณ " + lead.MONTHLY_BUDGET +
                 " บาทต่อเดือน) ด้านล่างคือตัวเลือกที่สอดคล้องกับข้อมูลที่เราตรวจสอบ:</p>" +
                 part.join("") +
                 "<p style=\"margin-top:14px\">คำแนะนำข้างต้นอ้างอิงเกณฑ์ที่คุณระบุและข้อมูลที่ตรวจสอบล่าสุด " +
                 "หากต้องการข้อมูลเพิ่มเติมก่อนตัดสินใจ โปรดตอบกลับอีเมลนี้</p>" +
                 "<p>ขอแสดงความนับถือ<br>[ชื่อของคุณ]</p>";
-            GmailApp.createDraft(kh.EMAIL, "เปรียบเทียบตัวเลือกซอฟต์แวร์สำหรับธุรกิจของคุณ — " + kh.LEAD_CODE, "", { htmlBody: contentText });
-            writeCell_(leadSheet, kh._row, "NOTES", "สร้างอีเมลร่างสำหรับคำแนะนำแล้ว " + currentTime_());
+            GmailApp.createDraft(lead.EMAIL, "เปรียบเทียบตัวเลือกซอฟต์แวร์สำหรับธุรกิจของคุณ — " + lead.LEAD_CODE, "", { htmlBody: contentText });
+            writeCell_(leadSheet, lead._row, "NOTES", "สร้างอีเมลร่างสำหรับคำแนะนำแล้ว " + currentTime_());
             adviceCount++;
         }
-        if (kh.APPROVAL_STATUS === "ต้องสอบถามเพิ่ม") {
-            var questions = String(kh.MISSING_INFO || "ข้อมูลเพิ่มเติมเกี่ยวกับความต้องการของคุณ")
+        if (lead.APPROVAL_STATUS === "ต้องสอบถามเพิ่ม") {
+            var questions = String(lead.MISSING_INFO || "ข้อมูลเพิ่มเติมเกี่ยวกับความต้องการของคุณ")
                 .split(/;\s*/).filter(String).map(function (c) { return "<li>" + c + "</li>"; }).join("");
             var emailMessage = "<p>สวัสดี</p>" +
                 "<p>ขอขอบคุณสำหรับการส่งคำขอของคุณ เพื่อการเปรียบเทียบที่แม่นยำแทนที่จะคาดเดา เราต้องการให้คุณเพิ่ม:</p>" +
                 "<ul style=\"margin:0 0 8px 18px\">" + questions + "</ul>" +
                 "<p>หากคุณตอบกลับจดหมายฉบับนี้โดยตรงก็เพียงพอแล้ว</p><p>ขอแสดงความนับถือ<br>[ชื่อของคุณ]</p>";
-            GmailApp.createDraft(kh.EMAIL, "โปรดให้ข้อมูลเพิ่มเติมเพื่อขอคำแนะนำที่ถูกต้อง —" + kh.LEAD_CODE, "", { htmlBody: emailMessage });
-            writeCell_(leadSheet, kh._row, "NOTES", "สร้างอีเมลร่างเพื่อขอข้อมูลเพิ่มเติมแล้ว " + currentTime_());
+            GmailApp.createDraft(lead.EMAIL, "โปรดให้ข้อมูลเพิ่มเติมเพื่อขอคำแนะนำที่ถูกต้อง —" + lead.LEAD_CODE, "", { htmlBody: emailMessage });
+            writeCell_(leadSheet, lead._row, "NOTES", "สร้างอีเมลร่างเพื่อขอข้อมูลเพิ่มเติมแล้ว " + currentTime_());
             followupCount++;
         }
     });
@@ -714,7 +714,7 @@ function createCustomerDrafts() {
     SpreadsheetApp.getUi().alert("สร้างอีเมลร่างใน Gmail แล้ว: คำแนะนำ " + adviceCount + " ฉบับ และขอข้อมูลเพิ่ม " + followupCount + " ฉบับ\n\n" +
         "ระบบยังไม่ได้ส่งอีเมล โปรดเปิด Gmail ตรวจผู้รับ ลิงก์ และข้อความก่อนกดส่งด้วยตนเอง\n" +
         "หลังส่งแล้ว ให้เลือกแถวลูกค้าและเรียกขั้นตอนที่ 6 เพื่อทำเครื่องหมายว่าส่งแล้ว" +
-        (boQua.length ? "\n\nรายการที่ข้าม: " + boQua.join("; ") : ""));
+        (skippedItems.length ? "\n\nรายการที่ข้าม: " + skippedItems.join("; ") : ""));
 }
 function markSelectedLeadSent() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -746,10 +746,10 @@ function importCommissionReport() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(getSheetName_("COMMISSIONS"));
     var folder = DriveApp.getFolderById(folderId);
-    var ds = folder.getFiles();
+    var items = folder.getFiles();
     var newCountValue = 0, updatedCount = 0, fileCount = 0, errors = [];
-    while (ds.hasNext()) {
-        var file = ds.next();
+    while (items.hasNext()) {
+        var file = items.next();
         var name = file.getName();
         if (name.indexOf("IMPORTED_") === 0 || name === "COMMISSION_TEMPLATE.csv")
             continue;
@@ -761,17 +761,17 @@ function importCommissionReport() {
             var spreadsheet = Utilities.parseCsv(file.getBlob().getDataAsString("UTF-8"));
             if (spreadsheet.length < 2)
                 throw new Error("ไฟล์ไม่มีแถวข้อมูล");
-            var viTri = {};
-            spreadsheet[0].forEach(function (c, i) { viTri[columnNumber_(c)] = i; });
+            var headerIndex = {};
+            spreadsheet[0].forEach(function (c, i) { headerIndex[columnNumber_(c)] = i; });
             ["PARTNER_CODE", "TRANSACTION_CODE"].forEach(function (bd) {
-                if (viTri[bd] === undefined)
+                if (headerIndex[bd] === undefined)
                     throw new Error("ขาดคอลัมน์ที่จำเป็น: " + bd);
             });
             for (var d = 1; d < spreadsheet.length; d++) {
                 var h = spreadsheet[d];
                 if (!h.join("").trim())
                     continue;
-                var retrieved = function (c) { return viTri[c] !== undefined ? String(h[viTri[c]]).trim() : ""; };
+                var retrieved = function (c) { return headerIndex[c] !== undefined ? String(h[headerIndex[c]]).trim() : ""; };
                 var values = {
                     LEAD_CODE: retrieved("LEAD_CODE"), PARTNER_CODE: retrieved("PARTNER_CODE"), TRANSACTION_CODE: retrieved("TRANSACTION_CODE"),
                     RECORDED_DATE: retrieved("RECORDED_DATE"), STATUS: retrieved("STATUS") || "บันทึกแล้ว",
@@ -804,14 +804,14 @@ function reconcileCommissions() {
         notifyOrEmail_("กระทบยอดค่าคอมมิชชัน", "ยังไม่มีข้อมูลค่าคอมมิชชัน");
         return;
     }
-    var ds = readRows_(sheet, FIELDS.COMMISSIONS);
+    var items = readRows_(sheet, FIELDS.COMMISSIONS);
     var differenceCount = 0, outstandingCount = 0, totalEstimated = 0, totalApproved = 0, totalReceived = 0;
-    ds.forEach(function (h) {
+    items.forEach(function (h) {
         var estimated = toAmount_(h.ESTIMATED_COMMISSION), approved = toAmount_(h.APPROVED_COMMISSION), received = toAmount_(h.AMOUNT_RECEIVED);
-        var lech = estimated - approved, outstandingAmount = approved - received;
-        writeCell_(sheet, h._row, "RECONCILIATION_DIFFERENCE", lech);
+        var difference = estimated - approved, outstandingAmount = approved - received;
+        writeCell_(sheet, h._row, "RECONCILIATION_DIFFERENCE", difference);
         writeCell_(sheet, h._row, "AMOUNT_OUTSTANDING", outstandingAmount);
-        if (lech !== 0)
+        if (difference !== 0)
             differenceCount++;
         if (outstandingAmount > 0)
             outstandingCount++;
@@ -831,28 +831,28 @@ function reconcileCommissions() {
 }
 function checkRisks() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var homNay = new Date();
+    var today = new Date();
     var row = [];
     var productSheet = ss.getSheetByName(getSheetName_("PRODUCTS"));
     var staleProducts = [];
-    readRows_(productSheet, FIELDS.PRODUCTS).forEach(function (sp) {
-        if (!sp.PRODUCT_CODE)
+    readRows_(productSheet, FIELDS.PRODUCTS).forEach(function (product) {
+        if (!product.PRODUCT_CODE)
             return;
-        var date = parseDate_(sp.VERIFIED_DATE);
-        if (!date || (homNay - date) / 86400000 > CONFIG.STALE_AFTER_DAYS) {
-            if (sp.DATA_STATUS !== "ต้องอัปเดต") {
-                writeCell_(productSheet, sp._row, "DATA_STATUS", "ต้องอัปเดต");
+        var date = parseDate_(product.VERIFIED_DATE);
+        if (!date || (today - date) / 86400000 > CONFIG.STALE_AFTER_DAYS) {
+            if (product.DATA_STATUS !== "ต้องอัปเดต") {
+                writeCell_(productSheet, product._row, "DATA_STATUS", "ต้องอัปเดต");
             }
-            staleProducts.push(sp.PRODUCT_CODE + " — " + sp.PRODUCT_NAME);
+            staleProducts.push(product.PRODUCT_CODE + " — " + product.PRODUCT_NAME);
         }
     });
     row.push("1. สินค้าที่ไม่ได้ตรวจสอบภายใน " + CONFIG.STALE_AFTER_DAYS + " วัน: " + staleProducts.length + " รายการ");
     staleProducts.forEach(function (t) { row.push("   • " + t + " → เปิดแหล่งข้อมูลทางการ ตรวจสอบใหม่ แล้วจึงอัปเดตสถานะ"); });
-    var dsHH = readRows_(ss.getSheetByName(getSheetName_("COMMISSIONS")), FIELDS.COMMISSIONS);
+    var commissionRows = readRows_(ss.getSheetByName(getSheetName_("COMMISSIONS")), FIELDS.COMMISSIONS);
     var byPartner = {}, approvedTotal = 0;
-    dsHH.forEach(function (h) {
+    commissionRows.forEach(function (h) {
         var date = parseDate_(h.RECORDED_DATE);
-        if (date && (homNay - date) / 86400000 > 90)
+        if (date && (today - date) / 86400000 > 90)
             return;
         var t = toAmount_(h.APPROVED_COMMISSION);
         byPartner[h.PARTNER_CODE] = (byPartner[h.PARTNER_CODE] || 0) + t;
@@ -871,7 +871,7 @@ function checkRisks() {
         row.push("• ไม่มีค่าคอมมิชชันที่อนุมัติในช่วง 90 วัน");
     }
     var commissionLeadCodes = {};
-    dsHH.forEach(function (h) { if (h.LEAD_CODE)
+    commissionRows.forEach(function (h) { if (h.LEAD_CODE)
         commissionLeadCodes[String(h.LEAD_CODE).toUpperCase()] = true; });
     var unrecorded = [];
     readRows_(ss.getSheetByName(getSheetName_("LEADS")), FIELDS.LEADS).forEach(function (k) {
@@ -882,10 +882,10 @@ function checkRisks() {
     row.push("3. ลูกค้าที่ส่งคำแนะนำแล้วแต่ยังไม่มีรายการค่าคอมมิชชัน: " + unrecorded.length +
         (unrecorded.length ? " (" + unrecorded.join(", ") + ") — ติดตามรหัสลูกค้าในรายงานของพันธมิตร" : ""));
     var overdueReceivables = [];
-    dsHH.forEach(function (h) {
+    commissionRows.forEach(function (h) {
         var date = parseDate_(h.EXPECTED_PAYMENT_DATE);
         var outstandingAmount = toAmount_(h.APPROVED_COMMISSION) - toAmount_(h.AMOUNT_RECEIVED);
-        if (date && date < homNay && outstandingAmount > 0)
+        if (date && date < today && outstandingAmount > 0)
             overdueReceivables.push(h.PARTNER_CODE + "/" + h.TRANSACTION_CODE + ": " + formatThb_(outstandingAmount));
     });
     row.push("");
@@ -946,9 +946,9 @@ function testApiConnection() {
         var answers = callAi_("ตอบคำเดียวว่า ตกลง");
         var properties = PropertiesService.getScriptProperties();
         var key = properties.getProperty("API_KEY") || "";
-        var nha = key.indexOf("sk-ant") === 0 ? "Claude (Anthropic)" : "ChatGPT (OpenAI)";
+        var providerName = key.indexOf("sk-ant") === 0 ? "Claude (Anthropic)" : "ChatGPT (OpenAI)";
         var model = properties.getProperty("MODEL") || (key.indexOf("sk-ant") === 0 ? CONFIG.ANTHROPIC_MODEL : CONFIG.OPENAI_MODEL);
-        SpreadsheetApp.getUi().alert("เชื่อมต่อสำเร็จ\nผู้ให้บริการ: " + nha + "\nโมเดล: " + model +
+        SpreadsheetApp.getUi().alert("เชื่อมต่อสำเร็จ\nผู้ให้บริการ: " + providerName + "\nโมเดล: " + model +
             "\nคำตอบจาก AI: " + String(answers).substring(0, 80));
     }
     catch (e) {
@@ -982,10 +982,10 @@ function callAi_(prompt) {
     }
     var response = UrlFetchApp.fetch(url, options);
     var code = response.getResponseCode();
-    var than = response.getContentText();
+    var responseBody = response.getContentText();
     if (code !== 200)
-        throw new Error("รหัสส่งคืน API" + code + ": " + than.substring(0, 300));
-    var json = JSON.parse(than);
+        throw new Error("รหัสส่งคืน API" + code + ": " + responseBody.substring(0, 300));
+    var json = JSON.parse(responseBody);
     if (isAnthropic)
         return json.content.map(function (k) { return k.text || ""; }).join("");
     return json.choices[0].message.content;
@@ -1006,25 +1006,25 @@ function readRows_(sheet, headers) {
     if (!sheet || sheet.getLastRow() < 2)
         return [];
     var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
-    var ketQua = [];
+    var records = [];
     values.forEach(function (sourceRow, i) {
         if (!sourceRow.join("").toString().trim())
             return;
         var record = { _row: i + 2 };
         headers.forEach(function (column, j) { record[column] = sourceRow[j]; });
-        ketQua.push(record);
+        records.push(record);
     });
-    return ketQua;
+    return records;
 }
 function upsertRow_(sheet, headers, keyColumn, key, values) {
-    var ds = readRows_(sheet, headers);
+    var items = readRows_(sheet, headers);
     var existingRow = null;
-    for (var i = 0; i < ds.length; i++) {
+    for (var i = 0; i < items.length; i++) {
         var k = keyColumn === "_COMMISSION_KEY"
-            ? String(ds[i].PARTNER_CODE).toUpperCase() + "|" + String(ds[i].TRANSACTION_CODE).toUpperCase()
-            : String(ds[i][keyColumn]).toUpperCase();
+            ? String(items[i].PARTNER_CODE).toUpperCase() + "|" + String(items[i].TRANSACTION_CODE).toUpperCase()
+            : String(items[i][keyColumn]).toUpperCase();
         if (k === String(key).toUpperCase()) {
-            existingRow = ds[i]._row;
+            existingRow = items[i]._row;
             break;
         }
     }
@@ -1044,11 +1044,11 @@ function writeCell_(sheet, row, columnName, values) {
     if (column > 0)
         sheet.getRange(row, column).setValue(values);
 }
-function logEvent_(action, details, ketQua) {
+function logEvent_(action, details, records) {
     try {
         var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(getSheetName_("SYSTEM_LOG"));
         if (sheet)
-            sheet.appendRow([currentTime_(), action, details, ketQua]);
+            sheet.appendRow([currentTime_(), action, details, records]);
     }
     catch (e) { }
 }
