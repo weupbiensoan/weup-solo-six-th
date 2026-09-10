@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { --forest:#123f31; --leaf:#1f654b; --accent:#55b687; --canvas:#eef4f0; --card:#fff; --border:#d8e4dc; --text:#18251e; --muted:#66766c; --danger:#b53b32; --warning:#996f00; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--canvas); color:var(--text); font:14px/1.5 Arial,"Noto Sans Thai",sans-serif; }
+    header { padding:22px 26px; color:#fff; background:linear-gradient(110deg,var(--forest),var(--leaf)); border-bottom:4px solid var(--accent); }
+    .header-row { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
+    .eyebrow { color:#9be0bf; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { margin:4px 0 2px; font-size:26px; }
+    .subtitle { color:rgba(255,255,255,.78); }
+    .refresh { padding:9px 15px; border:1px solid rgba(255,255,255,.55); border-radius:6px; background:transparent; color:#fff; cursor:pointer; }
+    main { padding:22px 26px 30px; }
+    section { margin-bottom:24px; }
+    .section-title { display:flex; align-items:center; gap:10px; margin:0 0 11px; color:var(--leaf); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .section-title::before { content:""; width:18px; height:3px; background:var(--accent); }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(110px,1fr)) 135px; gap:8px; }
+    .stage,.exception { min-height:98px; padding:13px; border:1px solid var(--border); border-radius:7px; background:var(--card); }
+    .stage.pending { border-color:#e7b8b3; background:#fff4f2; }
+    .stage.done { background:#e3f3ea; }
+    .exception { background:#f6f0e8; }
+    .stage-value { font-size:27px; font-weight:800; line-height:1; color:var(--forest); }
+    .stage.pending .stage-value { color:var(--danger); }
+    .stage-label { margin-top:9px; font-weight:700; }
+    .stage-note { margin-top:3px; color:var(--muted); font-size:12px; }
+    .two-columns { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .metric-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+    .metric { padding:13px; border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:7px; background:var(--card); }
+    .metric.warning { border-left-color:var(--danger); background:#fff5f4; }
+    .metric-title { color:var(--muted); font-size:12px; }
+    .metric-value { margin:4px 0; font-size:23px; font-weight:800; color:var(--forest); }
+    .metric-note { color:var(--muted); font-size:12px; }
+    .action-group { margin-bottom:15px; }
+    .action-heading { margin:0 0 7px; color:var(--muted); font-weight:700; }
+    .action-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+    .action { min-height:58px; padding:10px 12px; border:1px solid var(--border); border-left:4px solid var(--leaf); border-radius:6px; background:#fff; color:var(--text); text-align:left; cursor:pointer; }
+    .action:hover { background:#f3faf6; }
+    .action:disabled { opacity:.55; cursor:wait; }
+    .action.confirm { border-left-color:var(--warning); }
+    .step { display:block; margin-bottom:2px; color:var(--muted); font-size:11px; font-weight:700; }
+    .notice { color:var(--muted); font-size:12px; }
+    #result { display:none; white-space:pre-wrap; padding:14px 16px; border:1px solid var(--border); border-radius:7px; background:#fff; }
+    #result.error { border-color:#e7b8b3; background:#fff4f2; color:var(--danger); }
+    .result-title { margin-bottom:5px; font-weight:800; }
+    @media (max-width:780px) { header,main{padding-left:16px;padding-right:16px}.flow{grid-template-columns:repeat(2,1fr)}.two-columns{grid-template-columns:1fr}.action-grid{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width:460px) { .header-row{display:block}.refresh{margin-top:12px}.flow,.metric-grid,.action-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <div><div class="eyebrow">WEUP SoloSix · โมเดล 5</div><h1 id="brand-name">ระบบอีคอมเมิร์ซ</h1><div class="subtitle" id="updated-at">กำลังโหลดข้อมูล...</div></div>
+      <button class="refresh" type="button" onclick="loadDashboard()">โหลดข้อมูลใหม่</button>
+    </div>
+  </header>
+  <main>
+    <section><h2 class="section-title">สถานะคำสั่งซื้อ</h2><div class="flow" id="order-flow"></div></section>
+    <section class="two-columns">
+      <div><h2 class="section-title">รายการที่ต้องตรวจสอบ</h2><div class="metric-grid" id="review-metrics"></div></div>
+      <div><h2 class="section-title">ความพร้อมของระบบ</h2><div class="metric-grid" id="readiness-metrics"></div></div>
+    </section>
+    <section id="actions">
+      <h2 class="section-title">เรียกใช้ขั้นตอน</h2>
+      <div class="action-group"><p class="action-heading">รวบรวมและวิเคราะห์ความต้องการ</p><div class="action-grid">
+        <button class="action" data-action="step01CreateDemandForm"><span class="step">ขั้นตอน 1</span>สร้างแบบฟอร์มเก็บข้อมูล</button>
+        <button class="action" data-action="step02ImportDemandData"><span class="step">ขั้นตอน 2</span>นำเข้าข้อมูลความต้องการ</button>
+        <button class="action" data-action="step03GroupDemand"><span class="step">ขั้นตอน 3</span>จัดกลุ่มความต้องการด้วย AI</button>
+      </div></div>
+      <div class="action-group"><p class="action-heading">สินค้า ซัพพลายเออร์ และเนื้อหา</p><div class="action-grid">
+        <button class="action" data-action="step04CreateProductBrief"><span class="step">ขั้นตอน 4</span>สร้างข้อกำหนดสินค้า</button>
+        <button class="action" data-action="step04bCreateNewProductBrief"><span class="step">ขั้นตอน 4B</span>สร้างข้อกำหนดเวอร์ชันใหม่</button>
+        <button class="action confirm" data-action="step05SendQuoteRequests"><span class="step">ขั้นตอน 5 · ส่งอีเมล</span>ส่งคำขอใบเสนอราคา</button>
+        <button class="action" data-action="resetSupplierQuoteRound"><span class="step">ขั้นตอน 5B</span>เริ่มรอบขอราคาใหม่</button>
+        <button class="action" data-action="step06CreateSampleChecklist"><span class="step">ขั้นตอน 6</span>สร้างรายการตรวจตัวอย่าง</button>
+        <button class="action" data-action="step07CreateSalesContent"><span class="step">ขั้นตอน 7</span>สร้างเนื้อหาการขาย</button>
+      </div></div>
+      <div class="action-group"><p class="action-heading">คำสั่งซื้อ สต็อก และการติดตาม</p><div class="action-grid">
+        <button class="action" data-action="step08ImportOrders"><span class="step">ขั้นตอน 8</span>นำเข้าคำสั่งซื้อ</button>
+        <button class="action confirm" data-action="step09ValidateOrders"><span class="step">ขั้นตอน 9 · เปลี่ยนสต็อก</span>ตรวจสอบคำสั่งซื้อ</button>
+        <button class="action confirm" data-action="step10SendToWarehouse"><span class="step">ขั้นตอน 10 · ส่งอีเมล</span>ส่งรายการไปคลังสินค้า</button>
+        <button class="action" data-action="step11InventoryAlerts"><span class="step">ขั้นตอน 11</span>ตรวจสอบการแจ้งเตือนสต็อก</button>
+        <button class="action" data-action="step12ClassifySupportEmail"><span class="step">ขั้นตอน 12</span>จำแนกอีเมลช่วยเหลือ</button>
+        <button class="action" data-action="step13SummarizeReturns"><span class="step">ขั้นตอน 13</span>สรุปคืนสินค้าและยกเลิก</button>
+        <button class="action" data-action="step14ReconcilePeriod"><span class="step">ขั้นตอน 14</span>กระทบยอดประจำรอบ</button>
+      </div></div>
+      <p class="notice">ปุ่มที่มีแถบสีทองจะขอการยืนยันก่อนทำงาน ระบบไม่สั่งสินค้า ไม่โอนเงิน และไม่ส่งอีเมลตอบลูกค้าโดยอัตโนมัติ</p>
+    </section>
+    <section><div id="result" role="status" aria-live="polite"></div></section>
+  </main>
+  <script>
+    var ORDER_STAGES = [
+      ['PENDING_CONFIRMATION','รอยืนยัน','ตรวจหมายเหตุ'],
+      ['READY_FOR_WAREHOUSE','พร้อมส่งคลัง','ผ่านเงื่อนไขการจัดส่ง'],
+      ['SENT_TO_WAREHOUSE','ส่งคลังแล้ว','มีวันที่ส่งคลัง'],
+      ['IN_TRANSIT','กำลังจัดส่ง','อยู่กับผู้ให้บริการขนส่ง'],
+      ['DELIVERED','จัดส่งสำเร็จ','ใช้คำนวณอัตราสำเร็จ']
+    ];
+    function escapeHtml(value){return String(value).replace(/[<>&]/g,function(char){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[char];});}
+    function metricHtml(title,value,note,warning){return '<div class="metric'+(warning?' warning':'')+'"><div class="metric-title">'+escapeHtml(title)+'</div><div class="metric-value">'+escapeHtml(value)+'</div><div class="metric-note">'+escapeHtml(note)+'</div></div>';}
+    function renderDashboard(data){
+      document.getElementById('brand-name').textContent=data.brandName;
+      document.getElementById('updated-at').textContent='อัปเดตล่าสุด '+data.updatedAt;
+      var flow=ORDER_STAGES.map(function(stage,index){var value=data.orders[stage[0]]||0;var state=index===0&&value>0?' pending':index===4?' done':'';return '<div class="stage'+state+'"><div class="stage-value">'+value+'</div><div class="stage-label">'+stage[1]+'</div><div class="stage-note">'+stage[2]+'</div></div>';}).join('');
+      flow+='<div class="exception"><div class="stage-value">'+(data.orders.RETURNS_OR_CANCELS||0)+'</div><div class="stage-label">ยกเลิก / คืนสินค้า</div><div class="stage-note">วิเคราะห์ในขั้นตอน 13</div></div>';
+      document.getElementById('order-flow').innerHTML=flow;
+      document.getElementById('review-metrics').innerHTML=metricHtml('การแจ้งเตือนที่ยังไม่ปิด',data.alerts,'จากขั้นตอน 11 และ 13',data.alerts>0)+metricHtml('อีเมลที่ต้องอนุมัติ',data.approvalRequired,'คืนเงิน คุณภาพ ความปลอดภัย',data.approvalRequired>0)+metricHtml('เนื้อหารออนุมัติ',data.contentPendingApproval,'ข้อกำหนด รายการตรวจ และเนื้อหาขาย',false);
+      document.getElementById('readiness-metrics').innerHTML=metricHtml('ความต้องการที่อนุมัติ',data.approvedDemand,'เทียบกับข้อมูลทั้งหมด',false)+metricHtml('ซัพพลายเออร์สำรอง',data.backupSuppliers,'ควรมีอย่างน้อยหนึ่งราย',data.backupSuppliers===0)+metricHtml('ขั้นตอนที่ต้องยืนยัน','3','ขอราคา ตรวจคำสั่งซื้อ ส่งคลัง',false);
+    }
+    function showResult(title,message,isError){var box=document.getElementById('result');box.innerHTML='<div class="result-title">'+escapeHtml(title)+'</div>'+escapeHtml(message);box.className=isError?'error':'';box.style.display='block';}
+    function loadDashboard(){google.script.run.withSuccessHandler(renderDashboard).withFailureHandler(function(error){showResult('โหลดข้อมูลไม่สำเร็จ',error.message,true);}).getDashboardData();}
+    document.getElementById('actions').addEventListener('click',function(event){var button=event.target.closest('.action');if(!button)return;if(button.classList.contains('confirm')&&!confirm('ขั้นตอนนี้อาจเปลี่ยนสต็อกหรือส่งอีเมล ยืนยันดำเนินการต่อหรือไม่?'))return;var buttons=document.querySelectorAll('.action');buttons.forEach(function(item){item.disabled=true;});showResult('กำลังดำเนินการ',button.textContent.trim()+' ...',false);google.script.run.withSuccessHandler(function(message){var failed=String(message).indexOf('ข้อผิดพลาด:')===0;showResult(failed?'ดำเนินการไม่สำเร็จ':'เสร็จสิ้น',message,failed);buttons.forEach(function(item){item.disabled=false;});loadDashboard();}).withFailureHandler(function(error){showResult('ดำเนินการไม่สำเร็จ',error.message,true);buttons.forEach(function(item){item.disabled=false;});}).runDashboardAction(button.dataset.action);});
+    loadDashboard();
+  </script>
+</body>
+</html>
